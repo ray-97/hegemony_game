@@ -1,0 +1,17 @@
+cat << 'EOF' > .gitignore
+# Node
+node_modules/
+dist/
+.env
+
+# Python
+__pycache__/
+venv/
+*.pyc
+
+# Solana / Anchor
+target/
+test-ledger/
+.anchor/
+keys/
+EOF
