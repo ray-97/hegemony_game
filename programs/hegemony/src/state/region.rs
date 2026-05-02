@@ -9,6 +9,7 @@ pub struct RegionAccount {
     pub faction_owner: Option<Pubkey>,
     pub resource_yield: u64,
     pub status: RegionStatus,
+    pub last_income_turn: u32,
     pub bump: u8,
 }
 
