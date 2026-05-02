@@ -103,4 +103,61 @@ describe("hegemony", () => {
       expect(err.toString()).to.contain("TurnNotReady");
     }
   });
+
+  it("Processes income cycle", async () => {
+    // Wait for 5s turn duration
+    console.log("Waiting 5s for turn to become ready...");
+    await new Promise(resolve => setTimeout(resolve, 5500));
+
+    // 1. Advance Turn
+    await program.methods
+      .advanceTurn()
+      .accounts({
+        globalState: globalStatePda,
+        authority: authority.publicKey,
+      } as any)
+      .rpc();
+
+    // 2. Setup Destination ATA
+    const ata = await getOrCreateAssociatedTokenAccount(
+      provider.connection,
+      authority.payer,
+      capitalMint,
+      authority.publicKey
+    );
+
+    // 3. Process Income
+    await program.methods
+      .processRegionIncome()
+      .accounts({
+        globalState: globalStatePda,
+        region: regionPda,
+        capitalMint: capitalMint,
+        destinationTokenAccount: ata.address,
+        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+      } as any)
+      .rpc();
+
+    // 4. Verify Balance
+    // Yield = 1000 * (1 + 0) * (100 / 100) = 1000
+    const balance = await provider.connection.getTokenAccountBalance(ata.address);
+    expect(balance.value.amount).to.equal("1000");
+
+    // 5. Verify Double Claim Prevention
+    try {
+      await program.methods
+        .processRegionIncome()
+        .accounts({
+          globalState: globalStatePda,
+          region: regionPda,
+          capitalMint: capitalMint,
+          destinationTokenAccount: ata.address,
+          tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+        } as any)
+        .rpc();
+      expect.fail("Should have failed");
+    } catch (err) {
+      expect(err.toString()).to.contain("IncomeAlreadyProcessed");
+    }
+  });
 });
