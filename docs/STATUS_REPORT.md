@@ -1,7 +1,7 @@
 # Hegemony: Development Log & Status Report
 
 **Project Title:** Hegemony (Geopolitical Prediction Market Game)  
-**Current Phase:** Phase 3 (Pre-Epoch Auction) Complete  
+**Current Phase:** Phase 4 (Prediction Market AMM) Complete  
 **Last Updated:** Wednesday, April 29, 2026
 
 ---
@@ -72,12 +72,31 @@
 
 ---
 
-## Future Implementations
+## [Phase 4] Prediction Market AMM (The Trading Core)
+*Completed: Turn 4*
 
-### Phase 4: Prediction Market AMM (The Trading Core)
-* **Binary Share Logic:** Minting/Burning of "YES" and "NO" tokens for geopolitical theses.
-* **Bonding Curve:** Integration of `checked_math` bonding curves to discover price based on capital weight.
-* **Market Stabilization:** Implementation of taker fees and maker rebates.
+### Key Deliverables
+1. **Market State Management:**
+   * `MarketAccount`: Tracks the prediction market pool logic and resolution state (`Unresolved`, `ResolvedYes`, `ResolvedNo`).
+   * **Virtual AMM Pools:** Modeled `pool_yes` and `pool_no` virtually to save compute/storage, with pairs minted directly to users upon swap instead of holding static tokens.
+2. **AMM Instructions:**
+   * `initialize_market`: Creates a new binary prediction market, generating dedicated YES and NO mints and transferring initial capital ($CAP) liquidity to a secure market vault.
+   * `trade_shares`: Allows players to execute buys, automatically utilizing the constant product invariant ($k = pool_{yes} \times pool_{no}$) to calculate the exact amount of YES or NO shares returned for their $CAP input.
+   * `resolve_market`: Formally transitions a market to a resolved state.
+   * `claim_payout`: Enables holders of the winning binary share to burn their tokens for a 1:1 $CAP payout from the vault.
+3. **Security & Math Integrity:**
+   * **Rounding Protection:** AMM rounding logic was strictly implemented to round in favor of the pool (`new_pool_yes` calculation) preventing the $k$ invariant from ever decreasing due to integer math truncation.
+   * **Zero Floating-Point:** Fully `checked_math` dependent AMM implementation.
+   * **Slippage Mechanics:** Effectively implements a dynamic bonding curve where heavy backing increases the price towards 1.00 $CAP.
+
+### Technical Verification
+* **Automated Tests:** Added 3 new test suites directly focused on AMM operations (9 passing tests total).
+* **Curve Accuracy:** Verified user received exactly 19 YES shares after investing 10 $CAP into an initial 100-liquidity pool, confirming correct slippage behavior without breaking $k$.
+* **Payout Solvency:** Verified that upon market resolution, the winning shares can be perfectly redeemed for $CAP and the underlying token accounts are burned.
+
+---
+
+## Future Implementations
 
 ### Phase 5: Kinetic Events & State Shocks
 * **VRF Integration:** Resolving "Covert Ops" via verifiable randomness.

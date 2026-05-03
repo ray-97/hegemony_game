@@ -69,4 +69,33 @@ pub mod hegemony {
     pub fn set_region_owner(ctx: Context<SetRegionOwner>, owner: Pubkey) -> Result<()> {
         set_region_owner::set_region_owner_handler(ctx, owner)
     }
+
+    pub fn initialize_market(
+        ctx: Context<InitializeMarket>,
+        market_id: u64,
+        region_id: u8,
+        thesis_type: ThesisType,
+        liquidity: u64,
+    ) -> Result<()> {
+        initialize_market::initialize_market_handler(ctx, market_id, region_id, thesis_type, liquidity)
+    }
+
+    pub fn trade_shares(
+        ctx: Context<TradeShares>,
+        is_buying_yes: bool,
+        amount_capital: u64,
+    ) -> Result<()> {
+        trade_shares::trade_shares_handler(ctx, is_buying_yes, amount_capital)
+    }
+
+    pub fn resolve_market(
+        ctx: Context<ResolveMarket>,
+        outcome: bool,
+    ) -> Result<()> {
+        resolve_market::resolve_market_handler(ctx, outcome)
+    }
+
+    pub fn claim_payout(ctx: Context<ClaimPayout>) -> Result<()> {
+        claim_payout::claim_payout_handler(ctx)
+    }
 }

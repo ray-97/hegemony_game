@@ -16,4 +16,10 @@ pub enum ErrorCode {
     AuctionOngoing,
     #[msg("Invalid Game Status")]
     InvalidStatus,
+    #[msg("Market already resolved")]
+    MarketResolved,
+    #[msg("Market is still unresolved")]
+    MarketUnresolved,
+    #[msg("Invalid AMM Calculation")]
+    InvalidAmmCalculation,
 }

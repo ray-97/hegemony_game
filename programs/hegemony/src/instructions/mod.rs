@@ -6,6 +6,10 @@ pub mod delegate;
 pub mod resolve_auction;
 pub mod process_income;
 pub mod set_region_owner;
+pub mod initialize_market;
+pub mod trade_shares;
+pub mod resolve_market;
+pub mod claim_payout;
 
 pub use initialize::*;
 pub use initialize_region::*;
@@ -15,3 +19,7 @@ pub use delegate::*;
 pub use resolve_auction::*;
 pub use process_income::*;
 pub use set_region_owner::*;
+pub use initialize_market::*;
+pub use trade_shares::*;
+pub use resolve_market::*;
+pub use claim_payout::*;

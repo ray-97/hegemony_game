@@ -13,4 +13,13 @@ pub const LEADERBOARD_SEED: &[u8] = b"leaderboard";
 pub const ESCROW_SEED: &[u8] = b"escrow";
 
 #[constant]
+pub const MARKET_SEED: &[u8] = b"market";
+
+#[constant]
+pub const YES_MINT_SEED: &[u8] = b"yes_mint";
+
+#[constant]
+pub const NO_MINT_SEED: &[u8] = b"no_mint";
+
+#[constant]
 pub const TURN_DURATION: i64 = 5; // Set to 5 seconds for testing
