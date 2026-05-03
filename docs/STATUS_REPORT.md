@@ -1,7 +1,7 @@
 # Hegemony: Development Log & Status Report
 
 **Project Title:** Hegemony (Geopolitical Prediction Market Game)  
-**Current Phase:** Phase 5 (Kinetic Events & State Shocks) Complete  
+**Current Phase:** Phase 6 (AI Agents & Settlement) - On-chain Complete  
 **Last Updated:** Wednesday, April 29, 2026
 
 ---
@@ -122,8 +122,30 @@
 
 ---
 
+## [Phase 6] Global Settlement & Yield Distribution (On-chain)
+*Completed: Turn 6*
+
+### Key Deliverables
+1. **Delegation Tracking:**
+   * `DelegationRecord`: Implemented a new PDA structure to track individual user support for regional leaders, enabling precise payout calculations.
+   * **Automated Record Creation:** Updated `delegate_to_bidder` to persistently log support during the Pre-Epoch phase.
+2. **Settlement Instructions:**
+   * `end_epoch`: Implemented state transition logic to freeze AMMs and regional yields, declaring the region with highest dominance as the "Hegemon."
+   * `claim_epoch_yield`: Developed the final payout engine that calculates user rewards based on their delegation weight relative to the winning leader's total capital.
+3. **Security & Math:**
+   * **Prize Pool Simulation:** Implemented a solvent payout model (currently 1x multiplier for MVP verification) to ensure the vault remains liquid during global redemption.
+   * **Phase Locking:** Ensured final claims are only accessible after the `Ended` status is achieved.
+
+### Technical Verification
+* **Automated Tests:** **12 passing tests** total in `tests/hegemony.ts`.
+* **Full Lifecycle Verified:** Confirmed the entire loop from Initial Auction -> Active Trade -> Kinetic Shock -> Epoch Resolution -> Final Claim.
+* **Vault Solvency:** Verified successful $CAP transfer from the program vault to the user wallet upon burning delegation records.
+
+---
+
 ## Future Implementations
 
-### Phase 6: AI Agents & Settlement
-* **Agent Logic:** Python backend for arbitrage between regional and macro markets.
-* **Global Settlement:** Final distribution of protocol revenue and prize pools at the end of the Epoch.
+### Phase 6 (Part 2): Off-chain AI Agents
+* **Market Stabilization:** Python bots to inject "NO" liquidity and provide market counter-parties.
+* **Geopolitical Intelligence:** LLM-integrated agents to generate end-of-turn "Intelligence Briefs" based on board state.
+* **Crank Automation:** Automated "Keeper" scripts to advance turns and resolve timed markets.
