@@ -22,4 +22,6 @@ pub enum ErrorCode {
     MarketUnresolved,
     #[msg("Invalid AMM Calculation")]
     InvalidAmmCalculation,
+    #[msg("Insufficient Diplomatic Influence")]
+    InsufficientInfluence,
 }

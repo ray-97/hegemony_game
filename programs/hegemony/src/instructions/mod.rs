@@ -10,6 +10,9 @@ pub mod initialize_market;
 pub mod trade_shares;
 pub mod resolve_market;
 pub mod claim_payout;
+pub mod initialize_diplomacy;
+pub mod covert_op;
+pub mod resolve_kinetic;
 
 pub use initialize::*;
 pub use initialize_region::*;
@@ -23,3 +26,6 @@ pub use initialize_market::*;
 pub use trade_shares::*;
 pub use resolve_market::*;
 pub use claim_payout::*;
+pub use initialize_diplomacy::*;
+pub use covert_op::*;
+pub use resolve_kinetic::*;

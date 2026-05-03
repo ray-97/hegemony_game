@@ -98,4 +98,16 @@ pub mod hegemony {
     pub fn claim_payout(ctx: Context<ClaimPayout>) -> Result<()> {
         claim_payout::claim_payout_handler(ctx)
     }
+
+    pub fn initialize_diplomacy(ctx: Context<InitializeDiplomacy>) -> Result<()> {
+        initialize_diplomacy::handler(ctx)
+    }
+
+    pub fn initiate_covert_op(ctx: Context<InitiateCovertOp>, initiator_region_id: u8) -> Result<()> {
+        covert_op::initiate_covert_op_handler(ctx, initiator_region_id)
+    }
+
+    pub fn resolve_kinetic_market(ctx: Context<ResolveKineticMarket>, outcome: bool) -> Result<()> {
+        resolve_kinetic::resolve_kinetic_market_handler(ctx, outcome)
+    }
 }

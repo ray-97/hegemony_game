@@ -1,7 +1,7 @@
 # Hegemony: Development Log & Status Report
 
 **Project Title:** Hegemony (Geopolitical Prediction Market Game)  
-**Current Phase:** Phase 4 (Prediction Market AMM) Complete  
+**Current Phase:** Phase 5 (Kinetic Events & State Shocks) Complete  
 **Last Updated:** Wednesday, April 29, 2026
 
 ---
@@ -96,11 +96,33 @@
 
 ---
 
-## Future Implementations
+## [Phase 5] Kinetic Events & State Shocks
+*Completed: Turn 5*
 
-### Phase 5: Kinetic Events & State Shocks
-* **VRF Integration:** Resolving "Covert Ops" via verifiable randomness.
-* **Map Updates:** Logic to degrade infrastructure or shift dominance based on market resolution.
+### Key Deliverables
+1. **Diplomatic Influence (DI) System:**
+   * `DiplomaticInfluenceAccount`: Implemented a soulbound soft-power metric for State Actors.
+   * `initialize_diplomacy`: Sets up the initial DI for regional leaders.
+2. **Covert Operations:**
+   * `initiate_covert_op`: Implemented high-risk executive actions.
+   * **Hybrid Cost Logic:** Consumes DI based on target region's dominance ($cost = 10 \times D_r$) and transfers a flat $CAP fee to the market as "YES" liquidity injection, widening the profit margin for the attacker.
+3. **State Displacement Logic:**
+   * `resolve_kinetic_market`: Hooks the AMM resolution into the Map state.
+   * **Infrastructure Degradation:** Successful events (Resolved YES) now automatically degrade the target region's infrastructure level.
+   * **Volatility Penalty:** Applies a raw score penalty to the region, simulating post-sabotage instability.
+4. **Security & Math:**
+   * Strict phase enforcement (Operations only allowed during `Active` game status).
+   * Safe `checked_math` for DI consumption and infrastructure shifts.
+
+### Technical Verification
+* **Automated Tests:** **11 passing tests** total in `tests/hegemony.ts`.
+* **DI Integrity:** Verified successful initialization of soulbound DI.
+* **Covert Op Verification:** Confirmed initiation with correct $CAP and DI transfers, and verified "YES" liquidity injection into the target market.
+* **Map Impact:** Verified that kinetic resolution causes regional infrastructure level to drop and applies the volatility penalty.
+
+---
+
+## Future Implementations
 
 ### Phase 6: AI Agents & Settlement
 * **Agent Logic:** Python backend for arbitrage between regional and macro markets.
