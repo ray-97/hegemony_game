@@ -1,7 +1,7 @@
 # Hegemony: Development Log & Status Report
 
 **Project Title:** Hegemony (Geopolitical Prediction Market Game)  
-**Current Phase:** Phase 6 (Refinements & Staking) Complete  
+**Current Phase:** Phase 7 (AI Agents Framework) Complete  
 **Last Updated:** Wednesday, April 29, 2026
 
 ---
@@ -143,7 +143,7 @@
 
 ---
 
-## [Phase 6] Regional Refinements & Staking Engine
+## [Phase 7] Regional Refinements & Staking Engine
 *Completed: Turn 8*
 
 ### Key Deliverables
@@ -167,6 +167,30 @@
 
 ---
 
+## [Phase 8] Off-chain AI Agents & Automation
+*Completed: Turn 9*
+
+### Key Deliverables
+1. **Agent Infrastructure:**
+   * Established a Python 3.11 framework with `anchorpy` for direct SVM interaction.
+2. **Automated Protocol Maintenance:**
+   * **Turn Keeper (`keeper.py`):** Implemented an automated crank that monitors the on-chain clock and triggers turn transitions.
+   * **Market Stabilization Bot (`market_maker.py`):** Developed a bot to monitor prediction market liquidity and flag illiquid theses.
+3. **Geopolitical Intelligence Agency:**
+   * **State Ingestion:** Developed `intelligence_agency.py` to aggregate regional dominance, sector levels, and market skews.
+   * **Narrative AI:** Built a contextual prompting engine that translates raw blockchain data into strategic intelligence briefs (LLM-ready).
+   * **Market Sentiment Analysis:** Integrated the "Market Confidence Index" (MCI) into narrative reports to guide player trading strategies.
+
+### Technical Verification
+* **Batch State Fetching:** Verified asynchronous fetching of multi-account data structures via the Python client.
+* **Instruction Execution:** Confirmed the Python bots can successfully execute signed on-chain instructions like `advance_turn`.
+* **Prompt Fidelity:** Validated that the AI agent's internal model correctly interprets regional "Sector" levels and applies "Pariah State" penalties in its narrative output.
+
+---
+
 ## Future Implementations
 
-### Phase 7: Off-chain AI Agents
+### Phase 9: VRF Integration & Final UI
+* **Verifiable Randomness:** Integrating Switchboard/Pyth for true VRF-based kinetic resolution.
+* **Frontend Development:** Interactive Hex-Map and Terminal UI.
+* **Settlement Logic:** Finalizing prize pool distributions and regional yields.
