@@ -62,9 +62,9 @@ pub struct ProcessRegionIncome<'info> {
 
     #[account(
         mut,
-        constraint = destination_token_account.owner == region.faction_owner.ok_or(ErrorCode::InvalidOwner)?
+        constraint = bond_vault.key() == region.bond_vault
     )]
-    pub destination_token_account: Account<'info, TokenAccount>,
+    pub bond_vault: Account<'info, TokenAccount>,
 
     pub token_program: Program<'info, Token>,
 }
@@ -77,8 +77,12 @@ pub fn process_region_income_handler(ctx: Context<ProcessRegionIncome>) -> Resul
         return Err(ErrorCode::IncomeAlreadyProcessed.into());
     }
 
-    // Yield = resource_yield * (1 + infra_level) * (dominance / 100)
-    let infra_multiplier = (region.infrastructure_level as u64).checked_add(1).ok_or(ErrorCode::Overflow)?;
+    // Yield = resource_yield * (1 + sum_sectors) * (dominance / 100)
+    let total_infra = (region.energy_level as u64)
+        .checked_add(region.tech_level as u64).ok_or(ErrorCode::Overflow)?
+        .checked_add(region.logistics_level as u64).ok_or(ErrorCode::Overflow)?;
+    
+    let infra_multiplier = total_infra.checked_add(1).ok_or(ErrorCode::Overflow)?;
     let base_yield = region.resource_yield.checked_mul(infra_multiplier).ok_or(ErrorCode::Overflow)?;
     let total_yield = base_yield
         .checked_mul(region.dominance as u64)
@@ -98,7 +102,7 @@ pub fn process_region_income_handler(ctx: Context<ProcessRegionIncome>) -> Resul
                 ctx.accounts.token_program.to_account_info(),
                 MintTo {
                     mint: ctx.accounts.capital_mint.to_account_info(),
-                    to: ctx.accounts.destination_token_account.to_account_info(),
+                    to: ctx.accounts.bond_vault.to_account_info(),
                     authority: global_state.to_account_info(),
                 },
                 signer,
@@ -109,6 +113,6 @@ pub fn process_region_income_handler(ctx: Context<ProcessRegionIncome>) -> Resul
 
     region.last_income_turn = global_state.turn;
 
-    msg!("Processed income for region {}: {} Capital", region.id, total_yield);
+    msg!("Processed income for region {}: {} Capital added to vault", region.id, total_yield);
     Ok(())
 }

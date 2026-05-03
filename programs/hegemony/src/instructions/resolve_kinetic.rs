@@ -42,9 +42,9 @@ pub fn resolve_kinetic_market_handler(
         market.resolution_state = ResolutionState::ResolvedYes;
         
         // Successful Kinetic Event (e.g., Sabotage)
-        // 1. Reduce Infrastructure
-        if target_region.infrastructure_level > 0 {
-            target_region.infrastructure_level -= 1;
+        // 1. Reduce Energy Infrastructure
+        if target_region.energy_level > 0 {
+            target_region.energy_level -= 1;
         }
         
         // 2. Apply Volatility Penalty

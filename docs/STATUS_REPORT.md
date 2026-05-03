@@ -1,7 +1,7 @@
 # Hegemony: Development Log & Status Report
 
 **Project Title:** Hegemony (Geopolitical Prediction Market Game)  
-**Current Phase:** Phase 6 (AI Agents & Settlement) - On-chain Complete  
+**Current Phase:** Phase 6 (Refinements & Staking) Complete  
 **Last Updated:** Wednesday, April 29, 2026
 
 ---
@@ -143,9 +143,30 @@
 
 ---
 
+## [Phase 6] Regional Refinements & Staking Engine
+*Completed: Turn 8*
+
+### Key Deliverables
+1. **Strategic Infrastructure Sectors:**
+   * Split the generic `infrastructure_level` into three distinct sectors: `Energy`, `Technology`, and `Logistics`.
+   * Updated the income formula to scale based on the cumulative level of these sectors.
+2. **Sovereign Bond ($BOND) System:**
+   * Implemented a regional staking engine where "Global Citizens" can stake $CAP in exchange for region-specific $BOND tokens.
+   * **Exchange Rate Model:** Implemented the "Exchange Rate" logic for `unstake_capital`, where payouts are calculated as `(user_bonds * vault_balance) / total_bond_supply`. This allows $BOND value to grow as regional yield is added to the vault.
+   * **Automated Yield Routing:** Updated `process_region_income` to deposit newly minted $CAP directly into the region's Bond Vault.
+3. **Dynamic Dominance Formula:**
+   * Implemented the `update_region_dominance` instruction.
+   * **MCI Integration:** Dominance is now calculated dynamically based on Sector Levels, Market Confidence Index (MCI = Pool_Yes - Pool_No), and Volatility Penalties.
+   * **State Feedback Loop:** Trading activity now directly shifts regional power on the map.
+
+### Technical Verification
+* **Automated Tests:** **4 new passing tests** in `tests/hegemony_refinement.ts`.
+* **Staking Logic:** Verified 1:1 $CAP to $BOND minting and correct vault deposit.
+* **Formula Accuracy:** Confirmed that buying "NO" in a market (which increases the MCI) correctly boosts regional dominance via the on-chain formula.
+* **Vault Solvency:** Verified the exchange rate calculation for unstaking returns the correct proportional share of the vault.
+
+---
+
 ## Future Implementations
 
-### Phase 6 (Part 2): Off-chain AI Agents
-* **Market Stabilization:** Python bots to inject "NO" liquidity and provide market counter-parties.
-* **Geopolitical Intelligence:** LLM-integrated agents to generate end-of-turn "Intelligence Briefs" based on board state.
-* **Crank Automation:** Automated "Keeper" scripts to advance turns and resolve timed markets.
+### Phase 7: Off-chain AI Agents

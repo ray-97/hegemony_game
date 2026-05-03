@@ -15,6 +15,9 @@ pub mod covert_op;
 pub mod resolve_kinetic;
 pub mod end_epoch;
 pub mod claim_epoch_yield;
+pub mod stake;
+pub mod unstake;
+pub mod update_dominance;
 
 pub use initialize::*;
 pub use initialize_region::*;
@@ -33,3 +36,6 @@ pub use covert_op::*;
 pub use resolve_kinetic::*;
 pub use end_epoch::*;
 pub use claim_epoch_yield::*;
+pub use stake::*;
+pub use unstake::*;
+pub use update_dominance::*;

@@ -7,6 +7,12 @@ pub const GLOBAL_STATE_SEED: &[u8] = b"global_state";
 pub const REGION_SEED: &[u8] = b"region";
 
 #[constant]
+pub const BOND_MINT_SEED: &[u8] = b"bond_mint";
+
+#[constant]
+pub const VAULT_SEED: &[u8] = b"vault";
+
+#[constant]
 pub const LEADERBOARD_SEED: &[u8] = b"leaderboard";
 
 #[constant]

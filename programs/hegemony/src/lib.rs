@@ -118,4 +118,16 @@ pub mod hegemony {
     pub fn claim_epoch_yield(ctx: Context<ClaimEpochYield>) -> Result<()> {
         claim_epoch_yield::handler(ctx)
     }
+
+    pub fn stake_capital(ctx: Context<StakeCapital>, amount: u64) -> Result<()> {
+        stake::handler(ctx, amount)
+    }
+
+    pub fn unstake_capital(ctx: Context<UnstakeCapital>, bond_amount: u64) -> Result<()> {
+        unstake::handler(ctx, bond_amount)
+    }
+
+    pub fn update_region_dominance(ctx: Context<UpdateRegionDominance>) -> Result<()> {
+        update_dominance::handler(ctx)
+    }
 }
