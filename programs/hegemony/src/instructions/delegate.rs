@@ -27,6 +27,15 @@ pub struct DelegateToBidder<'info> {
     )]
     pub escrow: Account<'info, BidderEscrow>,
 
+    #[account(
+        init_if_needed,
+        payer = delegate,
+        space = 8 + DelegationRecord::INIT_SPACE,
+        seeds = [b"delegation", delegate.key().as_ref(), escrow.key().as_ref()],
+        bump
+    )]
+    pub delegation_record: Account<'info, DelegationRecord>,
+
     #[account(mut)]
     pub delegate: Signer<'info>,
 
@@ -45,6 +54,7 @@ pub struct DelegateToBidder<'info> {
     pub vault_token_account: Account<'info, TokenAccount>,
 
     pub token_program: Program<'info, Token>,
+    pub system_program: Program<'info, System>,
 }
 
 pub fn delegate_to_bidder_handler(ctx: Context<DelegateToBidder>, amount: u64) -> Result<()> {
@@ -72,7 +82,15 @@ pub fn delegate_to_bidder_handler(ctx: Context<DelegateToBidder>, amount: u64) -
     let escrow = &mut ctx.accounts.escrow;
     escrow.delegated_capital = escrow.delegated_capital.checked_add(amount).ok_or(ErrorCode::Overflow)?;
 
-    // 3. Update Leaderboard if needed
+    // 3. Update Delegation Record
+    let record = &mut ctx.accounts.delegation_record;
+    record.delegator = ctx.accounts.delegate.key();
+    record.leader = escrow.owner;
+    record.region_id = escrow.region_id;
+    record.amount = record.amount.checked_add(amount).ok_or(ErrorCode::Overflow)?;
+    record.bump = ctx.bumps.delegation_record;
+
+    // 4. Update Leaderboard if needed
     let leaderboard = &mut ctx.accounts.leaderboard;
     let total_weight = escrow.principal_capital.checked_add(escrow.delegated_capital).ok_or(ErrorCode::Overflow)?;
     

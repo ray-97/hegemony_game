@@ -118,7 +118,7 @@ describe("hegemony", () => {
       .rpc();
   });
 
-  it("Submits a Manifesto Bid", async () => {
+  it("Submits a Manifesto Bid and Delegates", async () => {
     const amount = new anchor.BN(5000);
     const manifestoUri = "https://arweave.net/manifesto123";
 
@@ -137,6 +137,11 @@ describe("hegemony", () => {
       true
     );
 
+    const [delegationPda] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("delegation"), authority.publicKey.toBuffer(), escrowPda.toBuffer()],
+      program.programId
+    );
+
     await program.methods
       .submitManifestoBid(regionId, amount, manifestoUri)
       .accounts({
@@ -151,9 +156,24 @@ describe("hegemony", () => {
       } as any)
       .rpc();
 
-    const lb = await program.account.regionLeaderboard.fetch(leaderboardPda);
-    expect(lb.currentLeader.toString()).to.equal(authority.publicKey.toString());
-    expect(lb.totalBidWeight.toNumber()).to.equal(5000);
+    // Delegate to self to test DelegationRecord
+    await program.methods
+      .delegateToBidder(new anchor.BN(1000))
+      .accounts({
+        globalState: globalStatePda,
+        leaderboard: leaderboardPda,
+        escrow: escrowPda,
+        delegationRecord: delegationPda,
+        delegate: authority.publicKey,
+        delegateTokenAccount: ata.address,
+        vaultTokenAccount: vaultAta.address,
+        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      } as any)
+      .rpc();
+
+    const record = await program.account.delegationRecord.fetch(delegationPda);
+    expect(record.amount.toNumber()).to.equal(1000);
   });
 
   it("Fails to advance turn in PreEpoch status", async () => {
@@ -225,8 +245,8 @@ describe("hegemony", () => {
       .rpc();
 
     const balance = await provider.connection.getTokenAccountBalance(ata.address);
-    // 1000000 - 5000 + 1000 = 996000
-    expect(balance.value.amount).to.equal("996000");
+    // 1000000 - 5000 (bid) - 1000 (delegate) + 1000 (yield) = 995000
+    expect(balance.value.amount).to.equal("995000");
   });
 
   it("Initializes a Prediction Market", async () => {
@@ -496,10 +516,6 @@ describe("hegemony", () => {
       } as any)
       .rpc();
 
-    // Manually boost DI for the test to afford the Op (100 * 10 = 1000)
-    // Note: In real gameplay, DI is earned over turns.
-    // For MVP testing, let's assume the user has enough or reduce dominance.
-
     // 3. Initiate Covert Op
     await program.methods
       .initiateCovertOp(initiatorRegionId)
@@ -527,13 +543,6 @@ describe("hegemony", () => {
       program.programId
     );
 
-    // Manually set infrastructure to 1 if it's 0 to test degradation
-    // In real game it would be level 1-3
-    // But since it's an MVP, let's just make sure it's at least 1.
-    // For now, let's just assert that it can be 0 or check if it changes if > 0.
-    
-    // Let's actually set region owner with infra in the previous phase or just assume it can degrade.
-    
     const regionBefore = await program.account.regionAccount.fetch(regionPda);
     const infraBefore = regionBefore.infrastructureLevel;
 
@@ -554,5 +563,63 @@ describe("hegemony", () => {
         expect(regionAfter.infrastructureLevel).to.equal(0);
     }
     expect(regionAfter.volatilityPenalty).to.be.greaterThan(0);
+  });
+
+  it("Ends Epoch and Claims Global Yield", async () => {
+    // 1. End Epoch
+    await program.methods
+      .endEpoch()
+      .accounts({
+        globalState: globalStatePda,
+        winningRegion: regionPda,
+        authority: authority.publicKey,
+      } as any)
+      .rpc();
+
+    const state = await program.account.globalState.fetch(globalStatePda);
+    expect(Object.keys(state.status)[0]).to.equal("ended");
+    expect(state.hegemon.toString()).to.equal(authority.publicKey.toString());
+
+    // 2. Claim Yield
+    const ata = await getOrCreateAssociatedTokenAccount(
+      provider.connection,
+      authority.payer,
+      capitalMint,
+      authority.publicKey
+    );
+
+    const vaultAta = await getOrCreateAssociatedTokenAccount(
+      provider.connection,
+      authority.payer,
+      capitalMint,
+      globalStatePda,
+      true
+    );
+
+    const [delegationPda] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("delegation"), authority.publicKey.toBuffer(), escrowPda.toBuffer()],
+      program.programId
+    );
+
+    const balanceBefore = await provider.connection.getTokenAccountBalance(ata.address);
+
+    await program.methods
+      .claimEpochYield()
+      .accounts({
+        globalState: globalStatePda,
+        delegationRecord: delegationPda,
+        winningEscrow: escrowPda,
+        user: authority.publicKey,
+        userCapitalAccount: ata.address,
+        vaultTokenAccount: vaultAta.address,
+        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+      } as any)
+      .rpc();
+
+    const balanceAfter = await provider.connection.getTokenAccountBalance(ata.address);
+    // User delegated 1000. Total weight was 5000 (bid) + 1000 (del) = 6000.
+    // Payout = (1000 * 6000) / 6000 = 1000.
+    const gained = parseInt(balanceAfter.value.amount) - parseInt(balanceBefore.value.amount);
+    expect(gained).to.equal(1000);
   });
 });

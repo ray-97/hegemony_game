@@ -10,6 +10,8 @@ pub struct GlobalState {
     pub auction_end_time: i64,
     pub last_turn_timestamp: i64,
     pub status: GameStatus,
+    pub hegemon: Option<Pubkey>,
+    pub total_prize_pool: u64,
     pub authority: Pubkey,
     pub treasury: Pubkey,
     pub capital_mint: Pubkey,

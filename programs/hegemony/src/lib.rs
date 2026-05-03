@@ -110,4 +110,12 @@ pub mod hegemony {
     pub fn resolve_kinetic_market(ctx: Context<ResolveKineticMarket>, outcome: bool) -> Result<()> {
         resolve_kinetic::resolve_kinetic_market_handler(ctx, outcome)
     }
+
+    pub fn end_epoch(ctx: Context<EndEpoch>) -> Result<()> {
+        end_epoch::handler(ctx)
+    }
+
+    pub fn claim_epoch_yield(ctx: Context<ClaimEpochYield>) -> Result<()> {
+        claim_epoch_yield::handler(ctx)
+    }
 }

@@ -13,6 +13,8 @@ pub mod claim_payout;
 pub mod initialize_diplomacy;
 pub mod covert_op;
 pub mod resolve_kinetic;
+pub mod end_epoch;
+pub mod claim_epoch_yield;
 
 pub use initialize::*;
 pub use initialize_region::*;
@@ -29,3 +31,5 @@ pub use claim_payout::*;
 pub use initialize_diplomacy::*;
 pub use covert_op::*;
 pub use resolve_kinetic::*;
+pub use end_epoch::*;
+pub use claim_epoch_yield::*;
