@@ -27,6 +27,7 @@ pub struct InitializeGlobalState<'info> {
 
 pub fn initialize_global_state_handler(
     ctx: Context<InitializeGlobalState>,
+    auction_duration: i64,
     epoch_duration: i64,
 ) -> Result<()> {
     let global_state = &mut ctx.accounts.global_state;
@@ -35,9 +36,10 @@ pub fn initialize_global_state_handler(
     global_state.epoch = 1;
     global_state.turn = 0;
     global_state.start_time = clock.unix_timestamp;
+    global_state.auction_end_time = clock.unix_timestamp.checked_add(auction_duration).unwrap();
     global_state.end_time = clock.unix_timestamp.checked_add(epoch_duration).unwrap();
     global_state.last_turn_timestamp = clock.unix_timestamp;
-    global_state.is_active = true;
+    global_state.status = GameStatus::PreEpoch;
     global_state.authority = ctx.accounts.authority.key();
     global_state.treasury = ctx.accounts.treasury.key();
     global_state.capital_mint = ctx.accounts.capital_mint.key();

@@ -10,4 +10,10 @@ pub enum ErrorCode {
     Overflow,
     #[msg("Invalid region owner")]
     InvalidOwner,
+    #[msg("Auction has already ended")]
+    AuctionEnded,
+    #[msg("Auction is still ongoing")]
+    AuctionOngoing,
+    #[msg("Invalid Game Status")]
+    InvalidStatus,
 }

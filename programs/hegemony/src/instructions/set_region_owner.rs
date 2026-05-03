@@ -22,7 +22,7 @@ pub struct SetRegionOwner<'info> {
     pub authority: Signer<'info>,
 }
 
-pub fn handler(ctx: Context<SetRegionOwner>, owner: Pubkey) -> Result<()> {
+pub fn set_region_owner_handler(ctx: Context<SetRegionOwner>, owner: Pubkey) -> Result<()> {
     let region = &mut ctx.accounts.region;
     region.faction_owner = Some(owner);
     region.dominance = 100; // For testing income, set dominance to 100%

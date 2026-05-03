@@ -19,6 +19,11 @@ pub struct AdvanceTurn<'info> {
 
 pub fn advance_turn_handler(ctx: Context<AdvanceTurn>) -> Result<()> {
     let global_state = &mut ctx.accounts.global_state;
+
+    if global_state.status != GameStatus::Active {
+        return Err(ErrorCode::InvalidStatus.into());
+    }
+
     let clock = Clock::get()?;
 
     let elapsed = clock.unix_timestamp.checked_sub(global_state.last_turn_timestamp).ok_or(ErrorCode::Overflow)?;
