@@ -2,14 +2,14 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Transfer, Token, TokenAccount};
 use crate::state::*;
 use crate::constants::*;
-use crate::error::ErrorCode;
+use crate::error::HegemonyError;
 
 #[derive(Accounts)]
 pub struct DelegateToBidder<'info> {
     #[account(
         seeds = [GLOBAL_STATE_SEED],
         bump = global_state.bump,
-        constraint = global_state.status == GameStatus::PreEpoch @ ErrorCode::InvalidStatus
+        constraint = global_state.status == GameStatus::PreEpoch @ HegemonyError::InvalidStatus
     )]
     pub global_state: Account<'info, GlobalState>,
 
@@ -62,7 +62,7 @@ pub fn delegate_to_bidder_handler(ctx: Context<DelegateToBidder>, amount: u64) -
     let clock = Clock::get()?;
 
     if clock.unix_timestamp > global_state.auction_end_time {
-        return Err(ErrorCode::AuctionEnded.into());
+        return Err(HegemonyError::AuctionEnded.into());
     }
 
     // 1. Transfer $CAP to vault
@@ -80,19 +80,19 @@ pub fn delegate_to_bidder_handler(ctx: Context<DelegateToBidder>, amount: u64) -
 
     // 2. Update Escrow
     let escrow = &mut ctx.accounts.escrow;
-    escrow.delegated_capital = escrow.delegated_capital.checked_add(amount).ok_or(ErrorCode::Overflow)?;
+    escrow.delegated_capital = escrow.delegated_capital.checked_add(amount).ok_or(HegemonyError::Overflow)?;
 
     // 3. Update Delegation Record
     let record = &mut ctx.accounts.delegation_record;
     record.delegator = ctx.accounts.delegate.key();
     record.leader = escrow.owner;
     record.region_id = escrow.region_id;
-    record.amount = record.amount.checked_add(amount).ok_or(ErrorCode::Overflow)?;
+    record.amount = record.amount.checked_add(amount).ok_or(HegemonyError::Overflow)?;
     record.bump = ctx.bumps.delegation_record;
 
     // 4. Update Leaderboard if needed
     let leaderboard = &mut ctx.accounts.leaderboard;
-    let total_weight = escrow.principal_capital.checked_add(escrow.delegated_capital).ok_or(ErrorCode::Overflow)?;
+    let total_weight = escrow.principal_capital.checked_add(escrow.delegated_capital).ok_or(HegemonyError::Overflow)?;
     
     if total_weight > leaderboard.total_bid_weight {
         leaderboard.current_leader = escrow.owner;

@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Transfer, MintTo, Token, TokenAccount, Mint};
 use crate::state::*;
 use crate::constants::*;
-use crate::error::ErrorCode;
+use crate::error::HegemonyError;
 
 #[derive(Accounts)]
 pub struct StakeCapital<'info> {
@@ -56,7 +56,7 @@ pub struct StakeCapital<'info> {
     pub rent: Sysvar<'info, Rent>,
 }
 
-pub fn handler(ctx: Context<StakeCapital>, amount: u64) -> Result<()> {
+pub fn stake_handler(ctx: Context<StakeCapital>, amount: u64) -> Result<()> {
     let global_state = &ctx.accounts.global_state;
     let region = &ctx.accounts.region;
 

@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/hegemony.json`.
  */
 export type Hegemony = {
-  "address": "79yvXQvVyqMYy4ofqKQD1CZXQSyH5eJ7dHT6ZZuXg7ND",
+  "address": "DqPFvuxkEdZJ4ZcDV5ufiPG9rG9k7WSy8zsidrewo7JX",
   "metadata": {
     "name": "hegemony",
     "version": "0.1.0",
@@ -321,6 +321,170 @@ export type Hegemony = {
       ]
     },
     {
+      "name": "depositSol",
+      "discriminator": [
+        108,
+        81,
+        78,
+        117,
+        125,
+        155,
+        56,
+        200
+      ],
+      "accounts": [
+        {
+          "name": "globalState",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  108,
+                  111,
+                  98,
+                  97,
+                  108,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "capitalMint",
+          "writable": true
+        },
+        {
+          "name": "treasury",
+          "writable": true
+        },
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "userCapitalAccount",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "user"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "capitalMint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "associatedTokenProgram",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amountLamports",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "endEpoch",
       "discriminator": [
         195,
@@ -384,7 +548,29 @@ export type Hegemony = {
       "accounts": [
         {
           "name": "diplomacy",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  105,
+                  112,
+                  108,
+                  111,
+                  109,
+                  97,
+                  99,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
         },
         {
           "name": "region"
@@ -399,7 +585,12 @@ export type Hegemony = {
           "address": "11111111111111111111111111111111"
         }
       ],
-      "args": []
+      "args": [
+        {
+          "name": "regionId",
+          "type": "u8"
+        }
+      ]
     },
     {
       "name": "initializeGlobalState",
@@ -764,6 +955,18 @@ export type Hegemony = {
         {
           "name": "resourceYield",
           "type": "u64"
+        },
+        {
+          "name": "energyLevel",
+          "type": "u8"
+        },
+        {
+          "name": "techLevel",
+          "type": "u8"
+        },
+        {
+          "name": "logisticsLevel",
+          "type": "u8"
         }
       ]
     },
@@ -835,7 +1038,29 @@ export type Hegemony = {
         },
         {
           "name": "initiatorDiplomacy",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  105,
+                  112,
+                  108,
+                  111,
+                  109,
+                  97,
+                  99,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "initiator"
+              }
+            ]
+          }
         },
         {
           "name": "initiator",

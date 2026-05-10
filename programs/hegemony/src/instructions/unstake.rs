@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Transfer, Burn, Token, TokenAccount, Mint};
 use crate::state::*;
 use crate::constants::*;
-use crate::error::ErrorCode;
+use crate::error::HegemonyError;
 
 #[derive(Accounts)]
 pub struct UnstakeCapital<'info> {
@@ -52,7 +52,7 @@ pub struct UnstakeCapital<'info> {
     pub token_program: Program<'info, Token>,
 }
 
-pub fn handler(ctx: Context<UnstakeCapital>, bond_amount: u64) -> Result<()> {
+pub fn unstake_handler(ctx: Context<UnstakeCapital>, bond_amount: u64) -> Result<()> {
     let global_state = &ctx.accounts.global_state;
     let region = &ctx.accounts.region;
     let bond_mint = &ctx.accounts.bond_mint;
@@ -68,8 +68,8 @@ pub fn handler(ctx: Context<UnstakeCapital>, bond_amount: u64) -> Result<()> {
     let total_supply = bond_mint.supply;
 
     let payout = (bond_amount as u128)
-        .checked_mul(vault_balance as u128).ok_or(ErrorCode::Overflow)?
-        .checked_div(total_supply as u128).ok_or(ErrorCode::Overflow)? as u64;
+        .checked_mul(vault_balance as u128).ok_or(HegemonyError::Overflow)?
+        .checked_div(total_supply as u128).ok_or(HegemonyError::Overflow)? as u64;
 
     // 2. Burn $BOND tokens
     token::burn(

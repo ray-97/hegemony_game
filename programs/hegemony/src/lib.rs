@@ -9,7 +9,7 @@ pub use constants::*;
 pub use instructions::*;
 pub use state::*;
 
-declare_id!("79yvXQvVyqMYy4ofqKQD1CZXQSyH5eJ7dHT6ZZuXg7ND");
+declare_id!("DqPFvuxkEdZJ4ZcDV5ufiPG9rG9k7WSy8zsidrewo7JX");
 
 #[program]
 pub mod hegemony {
@@ -27,8 +27,11 @@ pub mod hegemony {
         ctx: Context<InitializeRegion>,
         region_id: u8,
         resource_yield: u64,
+        energy_level: u8,
+        tech_level: u8,
+        logistics_level: u8,
     ) -> Result<()> {
-        initialize_region::initialize_region_handler(ctx, region_id, resource_yield)
+        initialize_region::initialize_region_handler(ctx, region_id, resource_yield, energy_level, tech_level, logistics_level)
     }
 
     pub fn initialize_leaderboard(
@@ -99,8 +102,8 @@ pub mod hegemony {
         claim_payout::claim_payout_handler(ctx)
     }
 
-    pub fn initialize_diplomacy(ctx: Context<InitializeDiplomacy>) -> Result<()> {
-        initialize_diplomacy::handler(ctx)
+    pub fn initialize_diplomacy(ctx: Context<InitializeDiplomacy>, region_id: u8) -> Result<()> {
+        initialize_diplomacy::initialize_diplomacy_handler(ctx, region_id)
     }
 
     pub fn initiate_covert_op(ctx: Context<InitiateCovertOp>, initiator_region_id: u8) -> Result<()> {
@@ -112,22 +115,26 @@ pub mod hegemony {
     }
 
     pub fn end_epoch(ctx: Context<EndEpoch>) -> Result<()> {
-        end_epoch::handler(ctx)
+        end_epoch::end_epoch_handler(ctx)
     }
 
     pub fn claim_epoch_yield(ctx: Context<ClaimEpochYield>) -> Result<()> {
-        claim_epoch_yield::handler(ctx)
+        claim_epoch_yield::claim_epoch_yield_handler(ctx)
     }
 
     pub fn stake_capital(ctx: Context<StakeCapital>, amount: u64) -> Result<()> {
-        stake::handler(ctx, amount)
+        stake::stake_handler(ctx, amount)
     }
 
     pub fn unstake_capital(ctx: Context<UnstakeCapital>, bond_amount: u64) -> Result<()> {
-        unstake::handler(ctx, bond_amount)
+        unstake::unstake_handler(ctx, bond_amount)
     }
 
     pub fn update_region_dominance(ctx: Context<UpdateRegionDominance>) -> Result<()> {
-        update_dominance::handler(ctx)
+        update_dominance::update_dominance_handler(ctx)
+    }
+
+    pub fn deposit_sol(ctx: Context<DepositSol>, amount_lamports: u64) -> Result<()> {
+        treasury::deposit_sol_handler(ctx, amount_lamports)
     }
 }

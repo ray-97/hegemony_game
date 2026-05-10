@@ -8,7 +8,7 @@ from solders.pubkey import Pubkey
 from solders.keypair import Keypair
 
 IDL_PATH = Path("../target/idl/hegemony.json")
-PROGRAM_ID = Pubkey.from_string("79yvXQvVyqMYy4ofqKQD1CZXQSyH5eJ7dHT6ZZuXg7ND")
+PROGRAM_ID = Pubkey.from_string("DqPFvuxkEdZJ4ZcDV5ufiPG9rG9k7WSy8zsidrewo7JX")
 
 async def main():
     client = AsyncClient("http://localhost:8899")
@@ -50,7 +50,7 @@ async def main():
                 # We need to pass the required accounts
                 # pub struct AdvanceTurn<'info> { global_state, authority }
                 tx = await program.rpc["advance_turn"](
-                    ctx=Context(
+                    ctx=anchorpy.Context(
                         accounts={
                             "global_state": global_state_pda,
                             "authority": wallet.public_key,

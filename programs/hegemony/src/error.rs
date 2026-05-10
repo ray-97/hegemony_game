@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 
 #[error_code]
-pub enum ErrorCode {
+pub enum HegemonyError {
     #[msg("Turn duration has not yet elapsed")]
     TurnNotReady,
     #[msg("Income for this region has already been processed for the current turn")]

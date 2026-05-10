@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{self, MintTo, Token, TokenAccount, Mint};
 use crate::state::*;
 use crate::constants::*;
-use crate::error::ErrorCode;
+use crate::error::HegemonyError;
 
 #[derive(Accounts)]
 pub struct AdvanceTurn<'info> {
@@ -21,18 +21,18 @@ pub fn advance_turn_handler(ctx: Context<AdvanceTurn>) -> Result<()> {
     let global_state = &mut ctx.accounts.global_state;
 
     if global_state.status != GameStatus::Active {
-        return Err(ErrorCode::InvalidStatus.into());
+        return Err(HegemonyError::InvalidStatus.into());
     }
 
     let clock = Clock::get()?;
 
-    let elapsed = clock.unix_timestamp.checked_sub(global_state.last_turn_timestamp).ok_or(ErrorCode::Overflow)?;
+    let elapsed = clock.unix_timestamp.checked_sub(global_state.last_turn_timestamp).ok_or(HegemonyError::Overflow)?;
     
     if elapsed < TURN_DURATION {
-        return Err(ErrorCode::TurnNotReady.into());
+        return Err(HegemonyError::TurnNotReady.into());
     }
 
-    global_state.turn = global_state.turn.checked_add(1).ok_or(ErrorCode::Overflow)?;
+    global_state.turn = global_state.turn.checked_add(1).ok_or(HegemonyError::Overflow)?;
     global_state.last_turn_timestamp = clock.unix_timestamp;
 
     msg!("Turn advanced to {}", global_state.turn);
@@ -74,21 +74,21 @@ pub fn process_region_income_handler(ctx: Context<ProcessRegionIncome>) -> Resul
     let region = &mut ctx.accounts.region;
 
     if region.last_income_turn >= global_state.turn {
-        return Err(ErrorCode::IncomeAlreadyProcessed.into());
+        return Err(HegemonyError::IncomeAlreadyProcessed.into());
     }
 
     // Yield = resource_yield * (1 + sum_sectors) * (dominance / 100)
     let total_infra = (region.energy_level as u64)
-        .checked_add(region.tech_level as u64).ok_or(ErrorCode::Overflow)?
-        .checked_add(region.logistics_level as u64).ok_or(ErrorCode::Overflow)?;
+        .checked_add(region.tech_level as u64).ok_or(HegemonyError::Overflow)?
+        .checked_add(region.logistics_level as u64).ok_or(HegemonyError::Overflow)?;
     
-    let infra_multiplier = total_infra.checked_add(1).ok_or(ErrorCode::Overflow)?;
-    let base_yield = region.resource_yield.checked_mul(infra_multiplier).ok_or(ErrorCode::Overflow)?;
+    let infra_multiplier = total_infra.checked_add(1).ok_or(HegemonyError::Overflow)?;
+    let base_yield = region.resource_yield.checked_mul(infra_multiplier).ok_or(HegemonyError::Overflow)?;
     let total_yield = base_yield
         .checked_mul(region.dominance as u64)
-        .ok_or(ErrorCode::Overflow)?
+        .ok_or(HegemonyError::Overflow)?
         .checked_div(100)
-        .ok_or(ErrorCode::Overflow)?;
+        .ok_or(HegemonyError::Overflow)?;
 
     if total_yield > 0 {
         let seeds = &[

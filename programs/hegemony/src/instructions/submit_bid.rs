@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Transfer, Token, TokenAccount};
 use crate::state::*;
 use crate::constants::*;
-use crate::error::ErrorCode;
+use crate::error::HegemonyError;
 
 #[derive(Accounts)]
 #[instruction(region_id: u8, amount: u64, manifesto_uri: String)]
@@ -10,7 +10,7 @@ pub struct SubmitManifestoBid<'info> {
     #[account(
         seeds = [GLOBAL_STATE_SEED],
         bump = global_state.bump,
-        constraint = global_state.status == GameStatus::PreEpoch @ ErrorCode::InvalidStatus
+        constraint = global_state.status == GameStatus::PreEpoch @ HegemonyError::InvalidStatus
     )]
     pub global_state: Account<'info, GlobalState>,
 
@@ -61,7 +61,7 @@ pub fn submit_manifesto_bid_handler(
     let clock = Clock::get()?;
 
     if clock.unix_timestamp > global_state.auction_end_time {
-        return Err(ErrorCode::AuctionEnded.into());
+        return Err(HegemonyError::AuctionEnded.into());
     }
 
     // 1. Transfer $CAP to vault
@@ -82,12 +82,12 @@ pub fn submit_manifesto_bid_handler(
     escrow.owner = ctx.accounts.bidder.key();
     escrow.region_id = region_id;
     escrow.manifesto_uri = manifesto_uri.clone();
-    escrow.principal_capital = escrow.principal_capital.checked_add(amount).ok_or(ErrorCode::Overflow)?;
+    escrow.principal_capital = escrow.principal_capital.checked_add(amount).ok_or(HegemonyError::Overflow)?;
     escrow.bump = ctx.bumps.escrow;
 
     // 3. Update Leaderboard if needed
     let leaderboard = &mut ctx.accounts.leaderboard;
-    let total_weight = escrow.principal_capital.checked_add(escrow.delegated_capital).ok_or(ErrorCode::Overflow)?;
+    let total_weight = escrow.principal_capital.checked_add(escrow.delegated_capital).ok_or(HegemonyError::Overflow)?;
     
     if total_weight > leaderboard.total_bid_weight {
         leaderboard.current_leader = ctx.accounts.bidder.key();

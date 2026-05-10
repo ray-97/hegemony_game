@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use crate::state::*;
 use crate::constants::*;
-use crate::error::ErrorCode;
+use crate::error::HegemonyError;
 
 #[derive(Accounts)]
 pub struct ResolveAuction<'info> {
@@ -9,7 +9,7 @@ pub struct ResolveAuction<'info> {
         mut,
         seeds = [GLOBAL_STATE_SEED],
         bump = global_state.bump,
-        constraint = global_state.status == GameStatus::PreEpoch @ ErrorCode::InvalidStatus
+        constraint = global_state.status == GameStatus::PreEpoch @ HegemonyError::InvalidStatus
     )]
     pub global_state: Account<'info, GlobalState>,
 
@@ -37,7 +37,7 @@ pub fn resolve_auction_handler(ctx: Context<ResolveAuction>) -> Result<()> {
     let clock = Clock::get()?;
 
     if clock.unix_timestamp < global_state.auction_end_time {
-        return Err(ErrorCode::AuctionOngoing.into());
+        return Err(HegemonyError::AuctionOngoing.into());
     }
 
     // 1. Assign Winner to Region

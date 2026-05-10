@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use crate::state::*;
 use crate::constants::*;
-use crate::error::ErrorCode;
+use crate::error::HegemonyError;
 
 #[derive(Accounts)]
 pub struct ResolveMarket<'info> {
@@ -9,7 +9,7 @@ pub struct ResolveMarket<'info> {
         mut,
         seeds = [MARKET_SEED, &market.market_id.to_le_bytes()],
         bump = market.bump,
-        constraint = market.resolution_state == ResolutionState::Unresolved @ ErrorCode::MarketResolved
+        constraint = market.resolution_state == ResolutionState::Unresolved @ HegemonyError::MarketResolved
     )]
     pub market: Account<'info, MarketAccount>,
 

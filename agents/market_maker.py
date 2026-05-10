@@ -8,7 +8,7 @@ from solders.keypair import Keypair
 
 # Path to the IDL
 IDL_PATH = Path("../target/idl/hegemony.json")
-PROGRAM_ID = Pubkey.from_string("79yvXQvVyqMYy4ofqKQD1CZXQSyH5eJ7dHT6ZZuXg7ND")
+PROGRAM_ID = Pubkey.from_string("DqPFvuxkEdZJ4ZcDV5ufiPG9rG9k7WSy8zsidrewo7JX")
 
 async def main():
     # 1. Setup Connection & Provider

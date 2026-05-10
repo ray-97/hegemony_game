@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Transfer, Token, TokenAccount};
 use crate::state::*;
 use crate::constants::*;
-use crate::error::ErrorCode;
+use crate::error::HegemonyError;
 
 #[derive(Accounts)]
 #[instruction(initiator_region_id: u8)]
@@ -11,7 +11,7 @@ pub struct InitiateCovertOp<'info> {
         mut,
         seeds = [GLOBAL_STATE_SEED],
         bump = global_state.bump,
-        constraint = global_state.status == GameStatus::Active @ ErrorCode::InvalidStatus
+        constraint = global_state.status == GameStatus::Active @ HegemonyError::InvalidStatus
     )]
     pub global_state: Account<'info, GlobalState>,
 
@@ -26,15 +26,16 @@ pub struct InitiateCovertOp<'info> {
         mut,
         seeds = [MARKET_SEED, &market.market_id.to_le_bytes()],
         bump = market.bump,
-        constraint = market.region_id == target_region.id @ ErrorCode::InvalidStatus,
-        constraint = market.resolution_state == ResolutionState::Unresolved @ ErrorCode::MarketResolved
+        constraint = market.region_id == target_region.id @ HegemonyError::InvalidStatus,
+        constraint = market.resolution_state == ResolutionState::Unresolved @ HegemonyError::MarketResolved
     )]
     pub market: Account<'info, MarketAccount>,
 
     #[account(
         mut,
-        seeds = [DIPLOMACY_SEED, initiator.key().as_ref(), &[initiator_region_id]],
+        seeds = [DIPLOMACY_SEED, initiator.key().as_ref()],
         bump = initiator_diplomacy.bump,
+        constraint = initiator_diplomacy.region_id == initiator_region_id @ HegemonyError::InvalidStatus
     )]
     pub initiator_diplomacy: Account<'info, DiplomaticInfluenceAccount>,
 
@@ -70,14 +71,14 @@ pub fn initiate_covert_op_handler(
 
     // 1. Calculate DI cost based on target region's dominance
     // cost = 10 * D_r
-    let di_cost = (target_region.dominance as u64).checked_mul(10).ok_or(ErrorCode::Overflow)?;
+    let di_cost = (target_region.dominance as u64).checked_mul(10).ok_or(HegemonyError::Overflow)?;
     
     if initiator_diplomacy.influence < di_cost {
-        return Err(ErrorCode::InsufficientInfluence.into());
+        return Err(HegemonyError::InsufficientInfluence.into());
     }
 
     // 2. Consume DI
-    initiator_diplomacy.influence = initiator_diplomacy.influence.checked_sub(di_cost).ok_or(ErrorCode::Overflow)?;
+    initiator_diplomacy.influence = initiator_diplomacy.influence.checked_sub(di_cost).ok_or(HegemonyError::Overflow)?;
     initiator_diplomacy.last_action_turn = global_state.turn;
 
     // 3. Transfer Capital fee to the market vault (this acts as "YES" liquidity injection per spec)
@@ -100,7 +101,7 @@ pub fn initiate_covert_op_handler(
     // If they inject YES liquidity, price of YES drops? No, if they inject $CAP into YES pool, YES price rises.
     
     let market = &mut ctx.accounts.market;
-    market.pool_yes = market.pool_yes.checked_add(COVERT_OP_COST).ok_or(ErrorCode::Overflow)?;
+    market.pool_yes = market.pool_yes.checked_add(COVERT_OP_COST).ok_or(HegemonyError::Overflow)?;
 
     msg!("Covert Op initiated against region {}. DI cost: {}", target_region.id, di_cost);
     

@@ -47,9 +47,9 @@ export function RegionCard({ id, name, dominance, energy, tech, logistics, statu
 
         {/* Sectors Grid */}
         <div className="grid grid-cols-3 gap-2 pt-2">
-          <SectorIcon icon={<Zap className="w-3 h-3" />} label="NRG" level={energy} />
-          <SectorIcon icon={<Cpu className="w-3 h-3" />} label="TCH" level={tech} />
-          <SectorIcon icon={<Ship className="w-3 h-3" />} label="LOG" level={logistics} />
+          <SectorIcon icon={<Zap className="w-4 h-4" />} label="Energy" level={energy} />
+          <SectorIcon icon={<Cpu className="w-4 h-4" />} label="Technology" level={tech} />
+          <SectorIcon icon={<Ship className="w-4 h-4" />} label="Logistics" level={logistics} />
         </div>
       </CardContent>
     </Card>
@@ -58,9 +58,9 @@ export function RegionCard({ id, name, dominance, energy, tech, logistics, statu
 
 function SectorIcon({ icon, label, level }: { icon: React.ReactNode; label: string; level: number }) {
   return (
-    <div className="flex flex-col items-center gap-1 p-2 rounded bg-zinc-900/50 border border-zinc-800/50">
-      <div className="text-zinc-500">{icon}</div>
-      <span className="text-[9px] font-mono text-zinc-500 uppercase">{label}</span>
+    <div className="flex flex-col items-center gap-2 p-2 rounded bg-zinc-900/50 border border-zinc-800/50">
+      <div className="text-cyan-500/70">{icon}</div>
+      <span className="text-[8px] font-bold font-mono text-zinc-400 uppercase tracking-tighter">{label}</span>
       <div className="flex gap-0.5">
         {[1, 2, 3].map((i) => (
           <div

@@ -2,14 +2,14 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Transfer, Token, TokenAccount};
 use crate::state::*;
 use crate::constants::*;
-use crate::error::ErrorCode;
+use crate::error::HegemonyError;
 
 #[derive(Accounts)]
 pub struct ClaimEpochYield<'info> {
     #[account(
         seeds = [GLOBAL_STATE_SEED],
         bump = global_state.bump,
-        constraint = global_state.status == GameStatus::Ended @ ErrorCode::InvalidStatus
+        constraint = global_state.status == GameStatus::Ended @ HegemonyError::InvalidStatus
     )]
     pub global_state: Account<'info, GlobalState>,
 
@@ -17,7 +17,7 @@ pub struct ClaimEpochYield<'info> {
         mut,
         seeds = [b"delegation", user.key().as_ref(), winning_escrow.key().as_ref()],
         bump = delegation_record.bump,
-        constraint = delegation_record.leader == global_state.hegemon.ok_or(ErrorCode::InvalidStatus)?
+        constraint = delegation_record.leader == global_state.hegemon.ok_or(HegemonyError::InvalidStatus)?
     )]
     pub delegation_record: Account<'info, DelegationRecord>,
 
@@ -47,7 +47,7 @@ pub struct ClaimEpochYield<'info> {
     pub token_program: Program<'info, Token>,
 }
 
-pub fn handler(ctx: Context<ClaimEpochYield>) -> Result<()> {
+pub fn claim_epoch_yield_handler(ctx: Context<ClaimEpochYield>) -> Result<()> {
     let global_state = &ctx.accounts.global_state;
     let record = &mut ctx.accounts.delegation_record;
     let escrow = &ctx.accounts.winning_escrow;
@@ -57,14 +57,14 @@ pub fn handler(ctx: Context<ClaimEpochYield>) -> Result<()> {
     }
 
     // Payout = (user_delegation * prize_pool) / total_leader_weight
-    let total_weight = escrow.principal_capital.checked_add(escrow.delegated_capital).ok_or(ErrorCode::Overflow)?;
+    let total_weight = escrow.principal_capital.checked_add(escrow.delegated_capital).ok_or(HegemonyError::Overflow)?;
     
     // For MVP, prize pool is exactly the total weight (simulating return of principal)
     let prize_pool = total_weight;
     
     let payout = (record.amount as u128)
-        .checked_mul(prize_pool as u128).ok_or(ErrorCode::Overflow)?
-        .checked_div(total_weight as u128).ok_or(ErrorCode::Overflow)? as u64;
+        .checked_mul(prize_pool as u128).ok_or(HegemonyError::Overflow)?
+        .checked_div(total_weight as u128).ok_or(HegemonyError::Overflow)? as u64;
 
     if payout > 0 {
         let seeds = &[

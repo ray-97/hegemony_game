@@ -50,7 +50,7 @@ The board is divided into five asymmetric regions, each with distinct starting a
 | **Pan-Asian Alliance** | The Factory | Starts with Max Tech. Infrastructure costs 30% less `$CAP`. | **Energy Starved:** Lowest base `$CAP` yield. Vulnerable to grid sabotage. | Rapid expansion; requires constant foreign capital. |
 | **North American Federation**| Financial Hegemon | Starts with the highest baseline `$CAP` reserves and AMM liquidity. | **Political Friction:** Covert Ops launched *by* this region cost 2x $DI. | Capital-heavy defense; relies on sanctions over kinetic action. |
 | **Eurozone Bloc** | Institutional Power| Generates 2x passive $DI$ per turn. Unmatched defensive "Veto Shields." | **Sluggish Bureaucracy:** Infrastructure takes an extra turn to build/activate. | Slow, stable yield-farming haven for safe `$BOND`s. |
-| **Gulf-MENA Syndicate** | The Energy Cartel | Starts with Max Energy grids. Prints massive baseline `$CAP` yield. | **Fragile Logistics:** Minimal defense against naval blockades. Low natural $DI$. | High-yield cash cow; must aggressively bribe/sanction to survive. |
+| **Gulf-MENA Kingdom** | The Energy Cartel | Starts with Max Energy grids. Prints massive baseline `$CAP` yield. | **Fragile Logistics:** Minimal defense against naval blockades. Low natural $DI$. | High-yield cash cow; must aggressively bribe/sanction to survive. |
 | **Global South Coalition** | Emerging Frontier | Lowest baseline $D_r$, meaning their AMM markets have extreme volatility. | **Structural Instability:** Highest base probability of falling to `Contested` status. | High-risk, high-reward; the ultimate proxy war playground. |
 
 ---

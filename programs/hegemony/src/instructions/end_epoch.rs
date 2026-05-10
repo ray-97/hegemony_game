@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use crate::state::*;
 use crate::constants::*;
-use crate::error::ErrorCode;
+use crate::error::HegemonyError;
 
 #[derive(Accounts)]
 pub struct EndEpoch<'info> {
@@ -9,7 +9,7 @@ pub struct EndEpoch<'info> {
         mut,
         seeds = [GLOBAL_STATE_SEED],
         bump = global_state.bump,
-        constraint = global_state.status == GameStatus::Active @ ErrorCode::InvalidStatus
+        constraint = global_state.status == GameStatus::Active @ HegemonyError::InvalidStatus
     )]
     pub global_state: Account<'info, GlobalState>,
 
@@ -26,7 +26,7 @@ pub struct EndEpoch<'info> {
     pub authority: Signer<'info>,
 }
 
-pub fn handler(ctx: Context<EndEpoch>) -> Result<()> {
+pub fn end_epoch_handler(ctx: Context<EndEpoch>) -> Result<()> {
     let global_state = &mut ctx.accounts.global_state;
     let winning_region = &ctx.accounts.winning_region;
     let clock = Clock::get()?;
@@ -34,7 +34,7 @@ pub fn handler(ctx: Context<EndEpoch>) -> Result<()> {
     if clock.unix_timestamp < global_state.end_time {
         // In real game, we'd check if someone reached 100 dominance
         if winning_region.dominance < 100 {
-             return Err(ErrorCode::TurnNotReady.into()); // Borrowing error for "Not time yet"
+             return Err(HegemonyError::TurnNotReady.into()); // Borrowing error for "Not time yet"
         }
     }
 

@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Transfer, MintTo, Token, TokenAccount, Mint};
 use crate::state::*;
 use crate::constants::*;
-use crate::error::ErrorCode;
+use crate::error::HegemonyError;
 
 #[derive(Accounts)]
 pub struct TradeShares<'info> {
@@ -10,7 +10,7 @@ pub struct TradeShares<'info> {
         mut,
         seeds = [MARKET_SEED, &market.market_id.to_le_bytes()],
         bump = market.bump,
-        constraint = market.resolution_state == ResolutionState::Unresolved @ ErrorCode::MarketResolved
+        constraint = market.resolution_state == ResolutionState::Unresolved @ HegemonyError::MarketResolved
     )]
     pub market: Account<'info, MarketAccount>,
 
@@ -72,32 +72,32 @@ pub fn trade_shares_handler(
     let market = &mut ctx.accounts.market;
 
     if amount_capital == 0 {
-        return Err(ErrorCode::InvalidAmmCalculation.into());
+        return Err(HegemonyError::InvalidAmmCalculation.into());
     }
 
     // Calculate AMM swap
-    let k = (market.pool_yes as u128).checked_mul(market.pool_no as u128).ok_or(ErrorCode::Overflow)?;
+    let k = (market.pool_yes as u128).checked_mul(market.pool_no as u128).ok_or(HegemonyError::Overflow)?;
     
     let mut shares_to_mint = amount_capital;
 
     if is_buying_yes {
-        let new_pool_no = market.pool_no.checked_add(amount_capital).ok_or(ErrorCode::Overflow)?;
+        let new_pool_no = market.pool_no.checked_add(amount_capital).ok_or(HegemonyError::Overflow)?;
         // Round UP to ensure k does not decrease
         let new_pool_yes = k.checked_add(new_pool_no as u128).unwrap().checked_sub(1).unwrap()
-            .checked_div(new_pool_no as u128).ok_or(ErrorCode::InvalidAmmCalculation)? as u64;
+            .checked_div(new_pool_no as u128).ok_or(HegemonyError::InvalidAmmCalculation)? as u64;
         
-        let dy = market.pool_yes.checked_sub(new_pool_yes).ok_or(ErrorCode::InvalidAmmCalculation)?;
-        shares_to_mint = shares_to_mint.checked_add(dy).ok_or(ErrorCode::Overflow)?;
+        let dy = market.pool_yes.checked_sub(new_pool_yes).ok_or(HegemonyError::InvalidAmmCalculation)?;
+        shares_to_mint = shares_to_mint.checked_add(dy).ok_or(HegemonyError::Overflow)?;
 
         market.pool_yes = new_pool_yes;
         market.pool_no = new_pool_no;
     } else {
-        let new_pool_yes = market.pool_yes.checked_add(amount_capital).ok_or(ErrorCode::Overflow)?;
+        let new_pool_yes = market.pool_yes.checked_add(amount_capital).ok_or(HegemonyError::Overflow)?;
         let new_pool_no = k.checked_add(new_pool_yes as u128).unwrap().checked_sub(1).unwrap()
-            .checked_div(new_pool_yes as u128).ok_or(ErrorCode::InvalidAmmCalculation)? as u64;
+            .checked_div(new_pool_yes as u128).ok_or(HegemonyError::InvalidAmmCalculation)? as u64;
         
-        let dy = market.pool_no.checked_sub(new_pool_no).ok_or(ErrorCode::InvalidAmmCalculation)?;
-        shares_to_mint = shares_to_mint.checked_add(dy).ok_or(ErrorCode::Overflow)?;
+        let dy = market.pool_no.checked_sub(new_pool_no).ok_or(HegemonyError::InvalidAmmCalculation)?;
+        shares_to_mint = shares_to_mint.checked_add(dy).ok_or(HegemonyError::Overflow)?;
 
         market.pool_yes = new_pool_yes;
         market.pool_no = new_pool_no;

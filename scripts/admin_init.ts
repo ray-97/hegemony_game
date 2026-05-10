@@ -9,7 +9,7 @@ async function main() {
   const program = anchor.workspace.Hegemony as Program<Hegemony>;
   const authority = (provider.wallet as anchor.Wallet).payer;
 
-  console.log("Starting Refined Board Initialization...");
+  console.log("Starting Asymmetric Board Initialization (5 Regions)...");
 
   // 1. Derive Global State PDA
   const [globalStatePda] = anchor.web3.PublicKey.findProgramAddressSync(
@@ -45,15 +45,48 @@ async function main() {
     } as any)
     .rpc();
 
-  // 4. Initialize 7 Regions
+  // 4. Initialize 5 Strategic Regions per Spec
   const regions = [
-    { id: 1, name: "North American Bloc", yield: 1000 },
-    { id: 2, name: "Pan-Asian Alliance", yield: 1200 },
-    { id: 3, name: "European Union", yield: 900 },
-    { id: 4, name: "African Union", yield: 700 },
-    { id: 5, name: "South American Coalition", yield: 800 },
-    { id: 6, name: "Middle Eastern Sector", yield: 1500 },
-    { id: 7, name: "Oceanic Federation", yield: 600 },
+    { 
+        id: 1, 
+        name: "Pan-Asian Alliance", 
+        yield: 800, 
+        energy: 0, 
+        tech: 3, 
+        logistics: 0 
+    },
+    { 
+        id: 2, 
+        name: "North American Federation", 
+        yield: 1200, 
+        energy: 1, 
+        tech: 1, 
+        logistics: 1 
+    },
+    { 
+        id: 3, 
+        name: "Eurozone Bloc", 
+        yield: 1000, 
+        energy: 0, 
+        tech: 0, 
+        logistics: 2 
+    },
+    { 
+        id: 4, 
+        name: "Gulf-MENA Kingdom", 
+        yield: 1500, 
+        energy: 3, 
+        tech: 0, 
+        logistics: 0 
+    },
+    { 
+        id: 5, 
+        name: "Global South Coalition", 
+        yield: 700, 
+        energy: 0, 
+        tech: 0, 
+        logistics: 0 
+    },
   ];
 
   for (const reg of regions) {
@@ -75,7 +108,13 @@ async function main() {
     );
 
     await program.methods
-      .initializeRegion(reg.id, new anchor.BN(reg.yield))
+      .initializeRegion(
+        reg.id, 
+        new anchor.BN(reg.yield),
+        reg.energy,
+        reg.tech,
+        reg.logistics
+      )
       .accounts({
         region: regionPda,
         bondMint: bondMintPda,
@@ -89,7 +128,6 @@ async function main() {
       } as any)
       .rpc();
 
-    // Also initialize Leaderboard for each region
     console.log(`Initializing Leaderboard for Region ${reg.id}...`);
     const [leaderboardPda] = anchor.web3.PublicKey.findProgramAddressSync(
       [Buffer.from("leaderboard"), Buffer.from([reg.id])],
@@ -107,7 +145,7 @@ async function main() {
       .rpc();
   }
 
-  console.log("Full Game Board Initialized Successfully!");
+  console.log("Asymmetric World State Initialized Successfully!");
 }
 
 main().catch((err) => {

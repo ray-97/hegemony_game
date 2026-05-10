@@ -18,6 +18,7 @@ pub mod claim_epoch_yield;
 pub mod stake;
 pub mod unstake;
 pub mod update_dominance;
+pub mod treasury;
 
 pub use initialize::*;
 pub use initialize_region::*;
@@ -39,3 +40,4 @@ pub use claim_epoch_yield::*;
 pub use stake::*;
 pub use unstake::*;
 pub use update_dominance::*;
+pub use treasury::*;

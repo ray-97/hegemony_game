@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use crate::state::*;
 use crate::constants::*;
-use crate::error::ErrorCode;
+use crate::error::HegemonyError;
 
 #[derive(Accounts)]
 pub struct UpdateRegionDominance<'info> {
@@ -15,7 +15,7 @@ pub struct UpdateRegionDominance<'info> {
     #[account(
         seeds = [MARKET_SEED, &market.market_id.to_le_bytes()],
         bump = market.bump,
-        constraint = market.region_id == region.id @ ErrorCode::InvalidStatus
+        constraint = market.region_id == region.id @ HegemonyError::InvalidStatus
     )]
     pub market: Account<'info, MarketAccount>,
 
@@ -30,7 +30,7 @@ pub struct UpdateRegionDominance<'info> {
     pub authority: Signer<'info>,
 }
 
-pub fn handler(ctx: Context<UpdateRegionDominance>) -> Result<()> {
+pub fn update_dominance_handler(ctx: Context<UpdateRegionDominance>) -> Result<()> {
     let region = &mut ctx.accounts.region;
     let market = &ctx.accounts.market;
 

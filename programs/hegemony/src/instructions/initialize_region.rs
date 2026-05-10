@@ -56,14 +56,17 @@ pub fn initialize_region_handler(
     ctx: Context<InitializeRegion>,
     region_id: u8,
     resource_yield: u64,
+    energy_level: u8,
+    tech_level: u8,
+    logistics_level: u8,
 ) -> Result<()> {
     let region = &mut ctx.accounts.region;
     
     region.id = region_id;
     region.dominance = 20; // Starting baseline
-    region.energy_level = 0;
-    region.tech_level = 0;
-    region.logistics_level = 0;
+    region.energy_level = energy_level;
+    region.tech_level = tech_level;
+    region.logistics_level = logistics_level;
     region.faction_owner = None;
     region.resource_yield = resource_yield;
     region.bond_mint = ctx.accounts.bond_mint.key();

@@ -4,43 +4,61 @@ import { useState, useEffect, useMemo } from "react";
 import { RegionCard } from "@/components/game/region-card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Terminal, Globe, Shield, Activity, Users, Wallet, Coins } from "lucide-react";
-import { useWallet } from "@solana/wallet-adapter-react";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import { Terminal, Globe, Shield, Activity, Users, Wallet } from "lucide-react";
+import { usePrivy } from "@privy-io/react-auth";
 import { Button } from "@/components/ui/button";
 import { useWorldState } from "@/hooks/useWorldState";
-import { useUserBalances } from "@/hooks/useUserBalances";
 import { TradingTerminal } from "@/components/game/trading-terminal";
-import { TreasuryModal } from "@/components/game/treasury-modal";
 
 export default function GameDashboard() {
-  const [mounted, setMounted] = useState(false);
-  const { connected, publicKey } = useWallet();
-  const liveState = useWorldState();
-  const userBalances = useUserBalances();
-  const [selectedRegionId, setSelectedRegionId] = useState<number | null>(null);
-  const [isTreasuryOpen, setIsTreasuryOpen] = useState(false);
+  const { login, logout, authenticated, user, ready } = usePrivy();
 
+  // High-fidelity Solana address extraction
+  const solanaAddress = useMemo(() => {
+    if (!user) return null;
+
+    // 1. Check primary wallet
+    if (user.wallet?.address && (user.wallet.chainType === 'solana' || !user.wallet.chainType)) {
+      return user.wallet.address;
+    }
+
+    // 2. Check linked accounts
+    const linkedSolana = user.linkedAccounts?.find(
+      (a: any) => a.type === "wallet" && (a.connectorType === "solana" || a.walletClientType === "privy")
+    );
+    if (linkedSolana) return linkedSolana.address;
+
+    return null;
+  }, [user]);
+
+  // UI state for the button
+  const displayWallet = useMemo(() => {
+    if (!ready) return "Booting...";
+    if (!authenticated) return "Connect Terminal";
+    if (solanaAddress) return `${solanaAddress.slice(0, 4)}...${solanaAddress.slice(-4)}`;
+    return "Creating Wallet...";
+  }, [ready, authenticated, solanaAddress]);
+
+  const liveState = useWorldState();
+  const [selectedRegionId, setSelectedRegionId] = useState<number | null>(null);
+
+  // Debug Auth State
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    if (authenticated && user) {
+      console.log("HEGEMONY AUTH DEBUG:", {
+        id: user.id,
+        wallet: user.wallet,
+        extractedAddress: solanaAddress,
+        linkedAccounts: user.linkedAccounts
+      });
+    }
+  }, [authenticated, user, solanaAddress]);
 
   // Mock alerts for now (can be hooked to intelligence_agency.py later)
   const alerts = [
     { id: 1, type: "Strategic", text: "Global transition to Active phase complete. Regional yields are now liquid." },
     { id: 2, type: "Market", text: "Predictive algorithms suggest high volatility in Pan-Asian tech markets." },
   ];
-
-  if (!mounted) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-black font-mono text-cyan-500">
-        <div className="flex flex-col items-center gap-4">
-          <Activity className="w-8 h-8 animate-pulse" />
-          <span className="text-xs uppercase tracking-[0.3em] animate-pulse">Booting Hegemony Terminal...</span>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col h-screen bg-black overflow-hidden selection:bg-cyan-500/30 selection:text-cyan-200">
@@ -71,34 +89,22 @@ export default function GameDashboard() {
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="hidden md:flex gap-6 font-mono text-[10px] items-center text-zinc-500 uppercase">
-             {connected && (
-               <>
-                 <div className="flex flex-col items-end">
-                   <span className="text-[9px] text-zinc-600">Arcade Capital</span>
-                   <span className="text-emerald-400 font-bold tracking-widest">
-                     {userBalances.isLoading ? "..." : userBalances.capital.toLocaleString()} $CAP
-                   </span>
-                 </div>
-                 <div className="h-4 w-px bg-zinc-800" />
-               </>
-             )}
-
-             <Button 
-               variant="outline" 
-               size="sm" 
-               onClick={() => setIsTreasuryOpen(true)}
-               className="h-7 border-amber-500/30 text-amber-500 bg-amber-500/5 hover:bg-amber-500/10 text-[10px]"
-             >
-               <Coins className="w-3 h-3 mr-1.5" /> Fund Terminal
-             </Button>
+          <div className="hidden md:flex gap-4 font-mono text-[10px] items-center text-zinc-500 uppercase">
              <div className="flex items-center gap-1.5">
                <Activity className={`w-3 h-3 ${liveState.isLoading ? "text-zinc-600" : "text-green-500"}`} /> 
                {liveState.isLoading ? "Syncing..." : "System Online"}
              </div>
              <div className="flex items-center gap-1.5"><Users className="w-3 h-3" /> 1,248 Citizens</div>
           </div>
-          <WalletMultiButton className="!bg-black !border !border-zinc-800 !h-9 !px-4 !rounded-lg !text-xs !font-mono !text-zinc-300 hover:!bg-zinc-900 !transition-colors" />
+          <Button 
+            onClick={authenticated ? logout : login}
+            disabled={!ready}
+            variant="outline" 
+            className="border-zinc-800 bg-black hover:bg-zinc-900 text-zinc-300 font-mono text-xs h-9"
+          >
+            <Wallet className="w-4 h-4 mr-2" />
+            {displayWallet}
+          </Button>
         </div>
       </header>
 
@@ -170,7 +176,7 @@ export default function GameDashboard() {
               ))}
 
               {/* Add Region Placeholder */}
-              {!liveState.isLoading && liveState.regions.length < 5 && (
+              {!liveState.isLoading && liveState.regions.length < 7 && (
                 <div className="border border-dashed border-zinc-800 rounded-xl flex flex-col items-center justify-center p-8 opacity-50 hover:opacity-100 transition-opacity cursor-pointer min-h-[200px]">
                   <div className="w-10 h-10 rounded-full bg-zinc-900 flex items-center justify-center mb-4">
                     <Globe className="w-5 h-5 text-zinc-500" />
@@ -189,15 +195,10 @@ export default function GameDashboard() {
         onClose={() => setSelectedRegionId(null)} 
       />
 
-      <TreasuryModal 
-        isOpen={isTreasuryOpen} 
-        onClose={() => setIsTreasuryOpen(false)} 
-      />
-
       {/* Footer / Terminal Ticker */}
       <footer className="h-8 border-t border-zinc-800 bg-zinc-950 flex items-center px-6 overflow-hidden">
         <div className="flex items-center gap-6 whitespace-nowrap animate-marquee">
-          {[1,2,3,4,5].map(i => (
+          {[1,2,3,4,5,6].map(i => (
             <div key={i} className="flex gap-2 items-center text-[10px] font-mono">
               <span className="text-zinc-500 uppercase">Market 00{i}:</span>
               <span className="text-green-400">YES $0.48</span>

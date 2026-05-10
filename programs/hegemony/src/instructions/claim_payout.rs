@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Transfer, Burn, Token, TokenAccount, Mint};
 use crate::state::*;
 use crate::constants::*;
-use crate::error::ErrorCode;
+use crate::error::HegemonyError;
 
 #[derive(Accounts)]
 pub struct ClaimPayout<'info> {
@@ -10,7 +10,7 @@ pub struct ClaimPayout<'info> {
         mut,
         seeds = [MARKET_SEED, &market.market_id.to_le_bytes()],
         bump = market.bump,
-        constraint = market.resolution_state != ResolutionState::Unresolved @ ErrorCode::MarketUnresolved
+        constraint = market.resolution_state != ResolutionState::Unresolved @ HegemonyError::MarketUnresolved
     )]
     pub market: Account<'info, MarketAccount>,
 

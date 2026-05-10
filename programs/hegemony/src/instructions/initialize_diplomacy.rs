@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 use crate::state::*;
 use crate::constants::*;
+use crate::error::HegemonyError;
 
 #[derive(Accounts)]
 pub struct InitializeDiplomacy<'info> {
@@ -8,7 +9,7 @@ pub struct InitializeDiplomacy<'info> {
         init,
         payer = authority,
         space = 8 + DiplomaticInfluenceAccount::INIT_SPACE,
-        seeds = [DIPLOMACY_SEED, authority.key().as_ref(), &[region.id]],
+        seeds = [DIPLOMACY_SEED, authority.key().as_ref()],
         bump
     )]
     pub diplomacy: Account<'info, DiplomaticInfluenceAccount>,
@@ -25,11 +26,19 @@ pub struct InitializeDiplomacy<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn handler(ctx: Context<InitializeDiplomacy>) -> Result<()> {
+pub fn initialize_diplomacy_handler(ctx: Context<InitializeDiplomacy>, region_id: u8) -> Result<()> {
     let diplomacy = &mut ctx.accounts.diplomacy;
+    let region = &ctx.accounts.region;
+
+    // Optional: Cross-verify region_id matches the account passed
+    require!(region.id == region_id, HegemonyError::InvalidStatus);
+
     diplomacy.owner = ctx.accounts.authority.key();
-    diplomacy.region_id = ctx.accounts.region.id;
-    diplomacy.influence = 2000; // Boosted for testing (Covert Ops cost DI)
+    diplomacy.region_id = region_id;
+    diplomacy.influence = 2000; // Starting bonus for MVP
     diplomacy.bump = ctx.bumps.diplomacy;
+
+    msg!("User registered citizenship in Region {}", region_id);
     Ok(())
 }
+
