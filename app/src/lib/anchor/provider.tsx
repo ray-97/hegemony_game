@@ -55,21 +55,24 @@ export function HegemonyProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (patchedIdl.instructions) {
-        patchedIdl.instructions = patchedIdl.instructions.map((ix: any) => ({
-          ...ix,
-          // Normalize instruction name
-          name: ix.name.replace(/_([a-z])/g, (g: any) => g[1].toUpperCase()),
-          // Normalize argument names
-          args: ix.args?.map((arg: any) => ({
-            ...arg,
-            name: arg.name.replace(/_([a-z])/g, (g: any) => g[1].toUpperCase()),
-          })) || [],
-          // Map accounts
-          accounts: ix.accounts?.map((acc: any) => ({
-            ...acc,
-            name: acc.name.replace(/_([a-z])/g, (g: any) => g[1].toUpperCase()),
-          })) || [],
-        }));
+        patchedIdl.instructions = patchedIdl.instructions.map((ix: any) => {
+          const newName = ix.name.replace(/_([a-z])/g, (g: any) => g[1].toUpperCase());
+          console.log(`[IDL Patch] ${ix.name} -> ${newName}`);
+          return {
+            ...ix,
+            name: newName,
+            // Normalize argument names
+            args: ix.args?.map((arg: any) => ({
+              ...arg,
+              name: arg.name.replace(/_([a-z])/g, (g: any) => g[1].toUpperCase()),
+            })) || [],
+            // Map accounts
+            accounts: ix.accounts?.map((acc: any) => ({
+              ...acc,
+              name: acc.name.replace(/_([a-z])/g, (g: any) => g[1].toUpperCase()),
+            })) || [],
+          };
+        });
       }
 
       return new Program(patchedIdl as any, provider);

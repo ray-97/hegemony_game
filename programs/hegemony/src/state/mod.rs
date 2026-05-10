@@ -5,9 +5,12 @@ pub mod market;
 pub mod diplomacy;
 pub mod delegation;
 
+pub mod profile;
+
 pub use global_state::*;
 pub use region::*;
 pub use auction::*;
 pub use market::*;
 pub use diplomacy::*;
 pub use delegation::*;
+pub use profile::*;

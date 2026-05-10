@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Dialog, 
   DialogContent, 
@@ -16,7 +16,8 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import * as anchor from "@coral-xyz/anchor";
 import { PublicKey, SystemProgram } from "@solana/web3.js";
 import { getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID } from "@solana/spl-token";
-import { Loader2, Coins } from "lucide-react";
+import { Loader2, Coins, UserCircle2 } from "lucide-react";
+import { usePlayerProfile } from "@/hooks/usePlayerProfile";
 
 interface TreasuryModalProps {
   isOpen: boolean;
@@ -25,22 +26,22 @@ interface TreasuryModalProps {
 
 export function TreasuryModal({ isOpen, onClose }: TreasuryModalProps) {
   const [solAmount, setSolAmount] = useState("0.1");
+  const [newName, setNewName] = useState("");
   const [issubmitting, setIsSubmitting] = useState(false);
   const { program } = useHegemony();
   const { publicKey } = useWallet();
+  const { name: currentName, updateName, isLoading: profileLoading } = usePlayerProfile();
+
+  useEffect(() => {
+    if (currentName) setNewName(currentName);
+  }, [currentName]);
 
   const handleDeposit = async () => {
     if (!program || !publicKey) return;
     setIsSubmitting(true);
-
     try {
       const lamports = new anchor.BN(parseFloat(solAmount) * 1e9);
-      
-      const [globalStatePda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("global_state")],
-        program.programId
-      );
-
+      const [globalStatePda] = PublicKey.findProgramAddressSync([Buffer.from("global_state")], program.programId);
       const globalState = await program.account.globalState.fetch(globalStatePda);
       const userAta = getAssociatedTokenAddressSync(globalState.capitalMint, publicKey);
       
@@ -68,52 +69,88 @@ export function TreasuryModal({ isOpen, onClose }: TreasuryModalProps) {
     }
   };
 
+  const handleUpdateName = async () => {
+    if (!newName) return;
+    setIsSubmitting(true);
+    try {
+      await updateName(newName);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[400px] bg-zinc-950 border-zinc-800 text-zinc-100">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold tracking-tight uppercase flex items-center gap-2">
-            <Coins className="w-5 h-5 text-amber-500" />
-            Capital Exchange
+            <UserCircle2 className="w-5 h-5 text-cyan-500" />
+            Neural Profile & Treasury
           </DialogTitle>
           <DialogDescription className="text-zinc-500 font-mono text-xs">
-            Convert SOL to $CAP (Hegemony Arcade Token). Rate: 1 SOL = 1,000 $CAP.
+            Manage your on-chain identity and capital reserves.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <label className="text-[10px] font-mono text-zinc-500 uppercase">SOL Amount</label>
-            <div className="flex gap-2 items-center">
-              <Input 
-                type="number" 
-                value={solAmount}
-                step="0.1"
-                min="0.01"
-                onChange={(e) => setSolAmount(e.target.value)}
-                className="bg-zinc-900 border-zinc-800 font-mono text-amber-500"
-              />
-              <span className="text-xs font-mono text-zinc-400">SOL</span>
-            </div>
+        <div className="space-y-6 py-4">
+          {/* PROFILE SECTION */}
+          <div className="space-y-3">
+             <label className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Player Alias</label>
+             <div className="flex gap-2">
+                <Input 
+                  placeholder="Set your name..." 
+                  value={newName} 
+                  onChange={(e) => setNewName(e.target.value)}
+                  className="bg-zinc-900 border-zinc-800 font-mono text-cyan-400 text-xs h-9"
+                />
+                <Button 
+                   onClick={handleUpdateName} 
+                   disabled={issubmitting || profileLoading}
+                   variant="outline"
+                   className="border-cyan-900/50 text-cyan-500 text-[10px] font-bold h-9 uppercase px-4"
+                >
+                   Update
+                </Button>
+             </div>
           </div>
 
-          <div className="p-3 rounded-lg bg-zinc-900/30 border border-zinc-800 space-y-1 font-mono text-[10px]">
-            <div className="flex justify-between">
-              <span className="text-zinc-500 uppercase">You Receive</span>
-              <span className="text-emerald-400 font-bold">{parseFloat(solAmount) * 1000} $CAP</span>
+          <div className="h-px bg-zinc-800" />
+
+          {/* TREASURY SECTION */}
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-[10px] font-mono text-zinc-500 uppercase flex items-center gap-2">
+                 <Coins className="w-3 h-3 text-amber-500" /> Capital Exchange
+              </label>
+              <div className="flex gap-2 items-center">
+                <Input 
+                  type="number" 
+                  value={solAmount}
+                  step="0.1"
+                  min="0.01"
+                  onChange={(e) => setSolAmount(e.target.value)}
+                  className="bg-zinc-900 border-zinc-800 font-mono text-amber-500 text-xs h-9"
+                />
+                <span className="text-xs font-mono text-zinc-400">SOL</span>
+              </div>
             </div>
+
+            <div className="p-3 rounded-lg bg-zinc-900/30 border border-zinc-800 space-y-1 font-mono text-[10px]">
+              <div className="flex justify-between">
+                <span className="text-zinc-500 uppercase">You Receive</span>
+                <span className="text-emerald-400 font-bold">{parseFloat(solAmount) * 1000} $CAP</span>
+              </div>
+            </div>
+
+            <Button 
+              disabled={issubmitting || !publicKey}
+              onClick={handleDeposit}
+              className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold uppercase tracking-widest text-[10px] h-9"
+            >
+              {issubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Authorize SOL Transfer"}
+            </Button>
           </div>
         </div>
-
-        <DialogFooter>
-          <Button 
-            disabled={issubmitting || !publicKey}
-            onClick={handleDeposit}
-            className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold uppercase tracking-widest text-xs h-10"
-          >
-            {issubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Authorize Transfer"}
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

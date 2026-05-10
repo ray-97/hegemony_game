@@ -19,6 +19,7 @@ pub mod stake;
 pub mod unstake;
 pub mod update_dominance;
 pub mod treasury;
+pub mod initialize_player_profile;
 
 pub use initialize::*;
 pub use initialize_region::*;
@@ -41,3 +42,4 @@ pub use stake::*;
 pub use unstake::*;
 pub use update_dominance::*;
 pub use treasury::*;
+pub use initialize_player_profile::*;

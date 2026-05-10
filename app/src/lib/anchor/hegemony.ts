@@ -878,6 +878,67 @@ export type Hegemony = {
       ]
     },
     {
+      "name": "initializePlayerProfile",
+      "discriminator": [
+        18,
+        138,
+        206,
+        203,
+        17,
+        11,
+        131,
+        62
+      ],
+      "accounts": [
+        {
+          "name": "profile",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  108,
+                  97,
+                  121,
+                  101,
+                  114,
+                  95,
+                  112,
+                  114,
+                  111,
+                  102,
+                  105,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "name",
+          "type": "string"
+        }
+      ]
+    },
+    {
       "name": "initializeRegion",
       "discriminator": [
         123,
@@ -2140,6 +2201,19 @@ export type Hegemony = {
       ]
     },
     {
+      "name": "playerProfile",
+      "discriminator": [
+        82,
+        226,
+        99,
+        87,
+        164,
+        130,
+        181,
+        80
+      ]
+    },
+    {
       "name": "regionAccount",
       "discriminator": [
         212,
@@ -2451,6 +2525,26 @@ export type Hegemony = {
                 "name": "resolutionState"
               }
             }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "playerProfile",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
           },
           {
             "name": "bump",

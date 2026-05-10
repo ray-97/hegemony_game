@@ -137,4 +137,8 @@ pub mod hegemony {
     pub fn deposit_sol(ctx: Context<DepositSol>, amount_lamports: u64) -> Result<()> {
         treasury::deposit_sol_handler(ctx, amount_lamports)
     }
+
+    pub fn initialize_player_profile(ctx: Context<InitializePlayerProfile>, name: String) -> Result<()> {
+        crate::instructions::initialize_player_profile::initialize_player_profile_handler(ctx, name)
+    }
 }

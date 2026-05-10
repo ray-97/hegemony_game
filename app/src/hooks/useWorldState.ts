@@ -24,13 +24,11 @@ export interface WorldState {
 }
 
 const REGION_NAMES: Record<number, string> = {
-  1: "North American Bloc",
-  2: "Pan-Asian Alliance",
-  3: "European Union",
-  4: "African Union",
-  5: "South American Coalition",
-  6: "Middle Eastern Sector",
-  7: "Oceanic Federation",
+  1: "Pan-Asian Alliance",
+  2: "North American Federation",
+  3: "Eurozone Bloc",
+  4: "Gulf-MENA Kingdom",
+  5: "Global South Coalition",
 };
 
 export function useWorldState() {
