@@ -29,14 +29,17 @@ import {
   Construction,
   Cpu,
   Ship,
-  Anchor
+  Anchor,
+  Activity,
+  Briefcase
 } from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useHegemony } from "@/lib/anchor/provider";
 import { useWorldState } from "@/hooks/useWorldState";
 import { useUserBalances } from "@/hooks/useUserBalances";
 import { useLeaderboard } from "@/hooks/useLeaderboard";
 import { useMarketRegistry } from "@/hooks/useMarketRegistry";
+import { useMarketPositions } from "@/hooks/useMarketPositions";
 import { PreEpochDashboard } from "./pre-epoch-dashboard";
 import * as anchor from "@coral-xyz/anchor";
 import { useWallet } from "@solana/wallet-adapter-react";
@@ -60,12 +63,19 @@ const REGION_IMAGES: Record<number, string> = {
   5: "/assets/face/face-global-south.png",
 };
 
-const REGIONAL_THESES: Record<number, { title: string; type: string }> = {
-  1: { title: "Pan-Asian High Speed Rail reaches Level 2 completion by Turn 15.", type: "MACRO" },
-  2: { title: "North American Energy Grid survives Cyber-Meltdown shock.", type: "KINETIC" },
-  3: { title: "Eurozone Bloc establishes Veto Shield against all sanction threats.", type: "GOVERNANCE" },
-  4: { title: "Gulf-MENA Kingdom maintains 100% Energy Dominance through Turn 20.", type: "MACRO" },
-  5: { title: "Global South Coalition upgrades all 3 Sectors to Level 1.", type: "DEVELOPMENT" },
+const EVENT_METADATA: Record<number, { title: string; type: string }> = {
+  0: { title: "LNG Infrastructure Expansion reaches Level 2 operational status.", type: "MACRO" },
+  1: { title: "Nuclear Power Grid modernization survives stability stress test.", type: "MACRO" },
+  2: { title: "Rare Earth Processing Fabs achieve 99% purity efficiency.", type: "MACRO" },
+  3: { title: "Advanced Semiconductor Fabs go live with 2nm node production.", type: "MACRO" },
+  4: { title: "Deepwater Port automation project completes Phase 1 integration.", type: "MACRO" },
+  5: { title: "Continental Rail Network established for high-speed logistics.", type: "MACRO" },
+  6: { title: "Supply Chain Shock: Massive LNG infrastructure disruption detected.", type: "KINETIC" },
+  7: { title: "Cyber-Meltdown: Nuclear grid controls compromised by external actor.", type: "KINETIC" },
+  8: { title: "Proxy Insurgency: Violent strikes paralyze Rare Earth processing.", type: "KINETIC" },
+  9: { title: "Corporate Espionage: Rival agent exfiltrates critical chip designs.", type: "KINETIC" },
+  10: { title: "Naval Blockade: Deepwater port access restricted by strike force.", type: "KINETIC" },
+  11: { title: "Border Skirmish: Kinetic exchange destroys Continental Rail link.", type: "KINETIC" },
 };
 
 interface TradingTerminalProps {
@@ -88,11 +98,11 @@ export function TradingTerminal({ regionId, isOpen, onClose }: TradingTerminalPr
   const userBalances = useUserBalances();
   const leaderboard = useLeaderboard(regionId);
   const { markets, isLoading: marketsLoading } = useMarketRegistry(regionId);
+  const userPositions = useMarketPositions(markets);
 
   const isPreEpoch = worldState.status === "PreEpoch";
   const isStateActor = leaderboard?.currentLeader === publicKey?.toBase58() || publicKey?.toBase58() === "EeHZdUYngn8tooohV3GiZ5gaeKTTX1hjs37GsuuYgafP";
   const regionBonds = regionId ? (userBalances.bonds[regionId] || 0) : 0;
-  const regionThesis = regionId ? REGIONAL_THESES[regionId] : null;
 
   // Sync active tab with game phase on initial load
   useEffect(() => {
@@ -186,17 +196,17 @@ export function TradingTerminal({ regionId, isOpen, onClose }: TradingTerminalPr
     }
   };
 
-  const handleTrade = async (marketPda: PublicKey, isBuyingYes: boolean) => {
+  const handleTrade = async (market: any, isBuyingYes: boolean) => {
     if (!program || !publicKey) return;
     setIsSubmitting(true);
     try {
-      const marketState = await program.account.marketAccount.fetch(marketPda);
+      const marketPda = market.pda;
       const [globalStatePda] = PublicKey.findProgramAddressSync([Buffer.from("global_state")], program.programId);
       const gState = await program.account.globalState.fetch(globalStatePda);
       
       const userCapitalAta = getAssociatedTokenAddressSync(gState.capitalMint, publicKey);
-      const userYesAta = getAssociatedTokenAddressSync(marketState.yesMint, publicKey);
-      const userNoAta = getAssociatedTokenAddressSync(marketState.noMint, publicKey);
+      const userYesAta = getAssociatedTokenAddressSync(new PublicKey(market.yesMint), publicKey);
+      const userNoAta = getAssociatedTokenAddressSync(new PublicKey(market.noMint), publicKey);
 
       const rawAmount = new anchor.BN(amount).mul(new anchor.BN(10).pow(new anchor.BN(9)));
 
@@ -206,9 +216,9 @@ export function TradingTerminal({ regionId, isOpen, onClose }: TradingTerminalPr
           market: marketPda,
           trader: publicKey,
           traderCapitalAccount: userCapitalAta,
-          vaultTokenAccount: marketState.capitalVault,
-          yesMint: marketState.yesMint,
-          noMint: marketState.noMint,
+          vaultTokenAccount: new PublicKey(market.capitalVault),
+          yesMint: new PublicKey(market.yesMint),
+          noMint: new PublicKey(market.noMint),
           traderYesAccount: userYesAta,
           traderNoAccount: userNoAta,
           tokenProgram: TOKEN_PROGRAM_ID,
@@ -226,13 +236,62 @@ export function TradingTerminal({ regionId, isOpen, onClose }: TradingTerminalPr
     }
   };
 
-  const handleInitiateOp = async (opType: string) => {
+  const handleCreateMarket = async (thesisType: any, eventIndex: number, amountLiquidity: number = 100) => {
+    if (!program || !publicKey || !regionId) return;
+    setIsSubmitting(true);
+    try {
+      // Use eventIndex as the suffix to ensure metadata resolution works
+      // 1778426914800 (base) + 5 = 1778426914805
+      const baseId = new anchor.BN(Math.floor(Date.now() / 100)).mul(new anchor.BN(100));
+      const marketId = baseId.add(new anchor.BN(eventIndex));
+
+      const [globalStatePda] = PublicKey.findProgramAddressSync([Buffer.from("global_state")], program.programId);
+      const [regionPda] = PublicKey.findProgramAddressSync([Buffer.from("region"), Buffer.from([regionId])], program.programId);
+      
+      const [marketPda] = PublicKey.findProgramAddressSync([Buffer.from("market"), marketId.toArrayLike(Buffer, "le", 8)], program.programId);
+      const [yesMintPda] = PublicKey.findProgramAddressSync([Buffer.from("yes_mint"), marketId.toArrayLike(Buffer, "le", 8)], program.programId);
+      const [noMintPda] = PublicKey.findProgramAddressSync([Buffer.from("no_mint"), marketId.toArrayLike(Buffer, "le", 8)], program.programId);
+      const [vaultPda] = PublicKey.findProgramAddressSync([Buffer.from("market_vault"), marketId.toArrayLike(Buffer, "le", 8)], program.programId);
+
+      const gState = await program.account.globalState.fetch(globalStatePda);
+      const userCapitalAta = getAssociatedTokenAddressSync(gState.capitalMint, publicKey);
+      const rawLiquidity = new anchor.BN(amountLiquidity).mul(new anchor.BN(10).pow(new anchor.BN(9)));
+
+      console.log(`Creating Market for Event ${eventIndex}. MarketID: ${marketId.toString()}`);
+
+      await program.methods
+        .initializeMarket(marketId, regionId, thesisType, rawLiquidity)
+        .accounts({
+          globalState: globalStatePda,
+          region: regionPda,
+          market: marketPda,
+          yesMint: yesMintPda,
+          noMint: noMintPda,
+          capitalVault: vaultPda,
+          creator: publicKey,
+          creatorCapitalAccount: userCapitalAta,
+          capitalMint: gState.capitalMint,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+          rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+        } as any)
+        .rpc();
+      
+      setActiveTab("trade"); 
+    } catch (err) {
+      console.error("Market creation failed:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleInitiateOp = async (opType: string, index: number) => {
      if (!targetRegionId) {
         console.error("No target region selected");
         return;
      }
-     console.log(`Initiating Op: ${opType} against Region ${targetRegionId}`);
-     // Logic for initiate_covert_op would go here
+     // Create the micro thesis market in the current region but targeting the other one (logic-wise)
+     await handleCreateMarket({ micro: {} }, index);
   };
 
   const otherRegions = Object.entries(REGION_NAMES)
@@ -281,34 +340,57 @@ export function TradingTerminal({ regionId, isOpen, onClose }: TradingTerminalPr
               {/* MARKET TAB (PERSISTENT) */}
               <TabsContent value="trade" className="h-full mt-0">
                 <ScrollArea className="h-full">
-                  <div className="space-y-6 pr-6">
-                    {!isPreEpoch ? (
-                      marketsLoading ? (
-                        <div className="py-20 text-center flex flex-col items-center gap-4">
-                          <Loader2 className="w-8 h-8 animate-spin text-zinc-700" />
-                          <span className="text-xs font-mono text-zinc-600 uppercase">Scanning Neural Link...</span>
+                  <div className="space-y-6 pr-6 pb-12">
+                    {marketsLoading ? (
+                      <div className="py-20 text-center flex flex-col items-center gap-4">
+                        <Loader2 className="w-8 h-8 animate-spin text-zinc-700" />
+                        <span className="text-xs font-mono text-zinc-600 uppercase">Scanning Neural Link...</span>
+                      </div>
+                    ) : markets.length > 0 ? (
+                      <div className="space-y-6">
+                        <div className="flex items-center gap-2 px-1 mb-2">
+                          <Activity className="w-4 h-4 text-emerald-500" />
+                          <span className="text-[10px] font-bold uppercase text-zinc-500 tracking-widest">
+                            {isPreEpoch ? "Pre-Epoch Strategic Pipeline" : "Live Geopolitical Market Feed"}
+                          </span>
                         </div>
-                      ) : markets.length === 0 ? (
-                         <div className="py-40 text-center border border-dashed border-zinc-800 rounded-2xl">
-                            <p className="text-xs font-mono text-zinc-600 uppercase tracking-widest px-8">
-                              NO ACTIVE THESIS DETECTED. WAITING FOR STATE ACTOR PROPOSAL.
-                            </p>
-                         </div>
-                      ) : (
-                        markets.map((m) => {
+                        {markets.map((m) => {
                           const totalLiquidity = m.poolYes + m.poolNo;
                           const pYes = totalLiquidity > 0 ? (m.poolNo / totalLiquidity).toFixed(2) : "0.50";
                           const pNo = totalLiquidity > 0 ? (m.poolYes / totalLiquidity).toFixed(2) : "0.50";
+                          
+                          const eventIndex = m.marketId % 100;
+                          const metadata = EVENT_METADATA[eventIndex] || { title: "Regional Strategic Objective", type: "MACRO" };
+                          const position = userPositions[m.marketId] || { yesBalance: 0, noBalance: 0 };
 
                           return (
                             <div key={m.marketId} className="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800 space-y-6">
-                              <div className="flex justify-between items-center">
-                                <span className="text-xs font-mono text-zinc-500 uppercase font-bold tracking-widest">THESIS 00{m.marketId}</span>
-                                <Badge className="bg-cyan-500/10 text-cyan-400 border-none text-[10px] uppercase px-3">{m.thesisType}</Badge>
+                              <div className="flex justify-between items-start">
+                                <div className="space-y-1">
+                                   <div className="flex items-center gap-3">
+                                      <span className="text-xs font-mono text-zinc-500 uppercase font-bold tracking-widest">THESIS 00{m.marketId}</span>
+                                      <Badge className={`text-[10px] border-none uppercase px-3 ${metadata.type === 'KINETIC' ? 'bg-rose-500/20 text-rose-400' : 'bg-cyan-500/10 text-cyan-400'}`}>{metadata.type}</Badge>
+                                   </div>
+                                   <h3 className="text-lg font-bold text-zinc-200 font-mono leading-relaxed uppercase">
+                                     "{metadata.title}"
+                                   </h3>
+                                </div>
+                                <div className="text-right p-3 rounded-xl bg-zinc-950 border border-zinc-800 min-w-[150px]">
+                                   <div className="flex items-center gap-2 mb-2 text-[9px] font-bold text-zinc-500 uppercase border-b border-zinc-900 pb-1">
+                                      <Briefcase className="w-3 h-3" /> Your Active Position
+                                   </div>
+                                   <div className="space-y-1 font-mono">
+                                      <div className="flex justify-between text-[10px]">
+                                         <span className="text-emerald-500">YES:</span>
+                                         <span className="text-zinc-200">{position.yesBalance.toLocaleString()} Shares</span>
+                                      </div>
+                                      <div className="flex justify-between text-[10px]">
+                                         <span className="text-rose-500">NO:</span>
+                                         <span className="text-zinc-200">{position.noBalance.toLocaleString()} Shares</span>
+                                      </div>
+                                   </div>
+                                </div>
                               </div>
-                              <h3 className="text-lg font-bold text-zinc-200 font-mono leading-relaxed uppercase">
-                                "{regionThesis?.title || "Regional Strategic Objective"}"
-                              </h3>
                               
                               <div className="grid grid-cols-2 gap-6">
                                 <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
@@ -334,7 +416,7 @@ export function TradingTerminal({ regionId, isOpen, onClose }: TradingTerminalPr
                                  <div className="flex gap-4">
                                     <Button 
                                       className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold h-12 tracking-widest"
-                                      onClick={() => handleTrade(m.pda, true)}
+                                      onClick={() => handleTrade(m, true)}
                                       disabled={issubmitting}
                                     >
                                       {issubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "EXECUTE YES"}
@@ -342,7 +424,7 @@ export function TradingTerminal({ regionId, isOpen, onClose }: TradingTerminalPr
                                     <Button 
                                       variant="outline" 
                                       className="flex-1 border-rose-900 text-rose-500 text-xs font-bold h-12 tracking-widest hover:bg-rose-900/10"
-                                      onClick={() => handleTrade(m.pda, false)}
+                                      onClick={() => handleTrade(m, false)}
                                       disabled={issubmitting}
                                     >
                                       {issubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "EXECUTE NO"}
@@ -351,12 +433,14 @@ export function TradingTerminal({ regionId, isOpen, onClose }: TradingTerminalPr
                               </div>
                             </div>
                           );
-                        })
-                      )
+                        })}
+                      </div>
                     ) : (
                       <div className="py-40 text-center border border-dashed border-zinc-800 rounded-2xl">
                         <p className="text-xs font-mono text-zinc-600 uppercase tracking-widest px-8 leading-relaxed">
-                          TRADING TERMINAL LOCKED. MARKETS WILL INITIALIZE AT TURN 1.
+                          {isPreEpoch 
+                            ? "STRATEGIC PIPELINE EMPTY. AUTHORIZE INFRASTRUCTURE EVENTS TO MINT MARKETS." 
+                            : "NO ACTIVE THESIS DETECTED. WAITING FOR STATE ACTOR PROPOSAL."}
                         </p>
                       </div>
                     )}
@@ -367,7 +451,7 @@ export function TradingTerminal({ regionId, isOpen, onClose }: TradingTerminalPr
               {/* EVENTS TAB (TACTICAL ENGAGEMENT MATRIX) */}
               <TabsContent value="events" className="h-full mt-0">
                 <ScrollArea className="h-full">
-                  <div className="space-y-12 pr-6 pb-12">
+                  <div className="space-y-12 pr-6 pb-12 min-w-[1100px]">
                     {/* SECTION 1: SOVEREIGN CONSTRUCTION (UPGRADES) */}
                     <div className="space-y-6">
                         <div className="flex items-center gap-3 px-1">
@@ -381,6 +465,7 @@ export function TradingTerminal({ regionId, isOpen, onClose }: TradingTerminalPr
                             image="/assets/infra/card-lng.png" 
                             disabled={!isStateActor}
                             cost={5000}
+                            onClick={() => handleCreateMarket({ macro: {} }, 0)}
                           />
                           <UpgradeCard 
                             title="Nuclear Power Grid" 
@@ -388,6 +473,7 @@ export function TradingTerminal({ regionId, isOpen, onClose }: TradingTerminalPr
                             image="/assets/infra/card-nuclear.png" 
                             disabled={!isStateActor}
                             cost={5000}
+                            onClick={() => handleCreateMarket({ macro: {} }, 1)}
                           />
                           <UpgradeCard 
                             title="Rare Earth Processing" 
@@ -395,6 +481,7 @@ export function TradingTerminal({ regionId, isOpen, onClose }: TradingTerminalPr
                             image="/assets/infra/card-rare-earth.png" 
                             disabled={!isStateActor}
                             cost={5000}
+                            onClick={() => handleCreateMarket({ macro: {} }, 2)}
                           />
                           <UpgradeCard 
                             title="Semiconductor Fabs" 
@@ -402,6 +489,7 @@ export function TradingTerminal({ regionId, isOpen, onClose }: TradingTerminalPr
                             image="/assets/infra/card-semicon.png" 
                             disabled={!isStateActor}
                             cost={5000}
+                            onClick={() => handleCreateMarket({ macro: {} }, 3)}
                           />
                           <UpgradeCard 
                             title="Deepwater Ports" 
@@ -409,6 +497,7 @@ export function TradingTerminal({ regionId, isOpen, onClose }: TradingTerminalPr
                             image="/assets/infra/card-port.png" 
                             disabled={!isStateActor}
                             cost={5000}
+                            onClick={() => handleCreateMarket({ macro: {} }, 4)}
                           />
                           <UpgradeCard 
                             title="Continental Rail" 
@@ -416,6 +505,7 @@ export function TradingTerminal({ regionId, isOpen, onClose }: TradingTerminalPr
                             image="/assets/infra/card-rail.png" 
                             disabled={!isStateActor}
                             cost={5000}
+                            onClick={() => handleCreateMarket({ macro: {} }, 5)}
                           />
                         </div>
                     </div>
@@ -428,12 +518,12 @@ export function TradingTerminal({ regionId, isOpen, onClose }: TradingTerminalPr
                           <Crosshair className="w-6 h-6 text-amber-500" />
                           <span className="text-sm font-bold uppercase text-zinc-400 tracking-[0.2em]">Target Acquisition Matrix</span>
                         </div>
-                        <div className="grid grid-cols-4 gap-6">
+                        <div className="flex gap-6">
                           {otherRegions.map((r) => (
                               <button 
                                 key={r.id} 
                                 onClick={() => setTargetRegionId(r.id)}
-                                className={`relative group aspect-square rounded-2xl overflow-hidden border-2 transition-all duration-300 ${targetRegionId === r.id ? "border-amber-500 shadow-[0_0_30px_rgba(245,158,11,0.4)] scale-[1.02]" : "border-zinc-800 hover:border-zinc-700 opacity-50 hover:opacity-100"}`}
+                                className={`relative group w-48 h-48 rounded-2xl overflow-hidden border-2 transition-all duration-300 ${targetRegionId === r.id ? "border-amber-500 shadow-[0_0_30px_rgba(245,158,11,0.4)] scale-[1.02]" : "border-zinc-800 hover:border-zinc-700 opacity-50 hover:opacity-100"}`}
                               >
                                 <Image src={r.image} alt={r.name} fill className="object-cover grayscale group-hover:grayscale-0 transition-all duration-700" />
                                 <div className={`absolute inset-0 flex flex-col items-center justify-end bg-gradient-to-t from-black via-black/20 to-transparent p-5`}>
@@ -469,7 +559,7 @@ export function TradingTerminal({ regionId, isOpen, onClose }: TradingTerminalPr
                                    image="/assets/shock/shock-lng.png" 
                                    isStateActor={isStateActor}
                                    targetSelected={!!targetRegionId}
-                                   onClick={() => handleInitiateOp('supply_shock')}
+                                   onClick={() => handleInitiateOp('supply_shock', 6)}
                                 />
                                 <ShockCard 
                                    name="Cyber-Meltdown" 
@@ -477,7 +567,7 @@ export function TradingTerminal({ regionId, isOpen, onClose }: TradingTerminalPr
                                    image="/assets/shock/shock-nuclear.png" 
                                    isStateActor={isStateActor}
                                    targetSelected={!!targetRegionId}
-                                   onClick={() => handleInitiateOp('cyber_meltdown')}
+                                   onClick={() => handleInitiateOp('cyber_meltdown', 7)}
                                 />
                               </div>
                           </div>
@@ -494,7 +584,7 @@ export function TradingTerminal({ regionId, isOpen, onClose }: TradingTerminalPr
                                    image="/assets/shock/shock-rare-earth.png" 
                                    isStateActor={isStateActor}
                                    targetSelected={!!targetRegionId}
-                                   onClick={() => handleInitiateOp('proxy_insurgency')}
+                                   onClick={() => handleInitiateOp('proxy_insurgency', 8)}
                                 />
                                 <ShockCard 
                                    name="Espionage" 
@@ -502,7 +592,7 @@ export function TradingTerminal({ regionId, isOpen, onClose }: TradingTerminalPr
                                    image="/assets/shock/shock-semicon.png" 
                                    isStateActor={isStateActor}
                                    targetSelected={!!targetRegionId}
-                                   onClick={() => handleInitiateOp('espionage')}
+                                   onClick={() => handleInitiateOp('espionage', 9)}
                                 />
                               </div>
                           </div>
@@ -519,7 +609,7 @@ export function TradingTerminal({ regionId, isOpen, onClose }: TradingTerminalPr
                                    image="/assets/shock/shock-port.png" 
                                    isStateActor={isStateActor}
                                    targetSelected={!!targetRegionId}
-                                   onClick={() => handleInitiateOp('naval_blockade')}
+                                   onClick={() => handleInitiateOp('naval_blockade', 10)}
                                 />
                                 <ShockCard 
                                    name="Border Skirmish" 
@@ -527,13 +617,14 @@ export function TradingTerminal({ regionId, isOpen, onClose }: TradingTerminalPr
                                    image="/assets/shock/shock-rail.png" 
                                    isStateActor={isStateActor}
                                    targetSelected={!!targetRegionId}
-                                   onClick={() => handleInitiateOp('border_skirmish')}
+                                   onClick={() => handleInitiateOp('border_skirmish', 11)}
                                 />
                               </div>
                           </div>
                         </div>
                     </div>
                   </div>
+                  <ScrollBar orientation="horizontal" />
                 </ScrollArea>
               </TabsContent>
 
@@ -623,9 +714,12 @@ export function TradingTerminal({ regionId, isOpen, onClose }: TradingTerminalPr
   );
 }
 
-function UpgradeCard({ title, sector, image, disabled, cost }: any) {
+function UpgradeCard({ title, sector, image, disabled, cost, onClick }: any) {
    return (
-      <div className={`relative group h-56 rounded-2xl overflow-hidden border-2 transition-all duration-300 ${disabled ? "border-zinc-800 opacity-50" : "border-cyan-500/20 hover:border-cyan-400 cursor-pointer shadow-lg hover:shadow-cyan-500/20 scale-[1.02]"}`}>
+      <div 
+         onClick={!disabled ? onClick : undefined}
+         className={`relative group h-56 rounded-2xl overflow-hidden border-2 transition-all duration-300 ${disabled ? "border-zinc-800 opacity-50 cursor-not-allowed" : "border-cyan-500/20 hover:border-cyan-400 cursor-pointer shadow-lg hover:shadow-cyan-500/20 scale-[1.02]"}`}
+      >
          <Image src={image} alt={title} fill className="object-cover grayscale group-hover:grayscale-0 transition-all duration-700" />
          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent transition-colors" />
          <div className="absolute inset-0 p-5 flex flex-col justify-between">
@@ -637,7 +731,7 @@ function UpgradeCard({ title, sector, image, disabled, cost }: any) {
                <p className="text-sm font-bold text-white leading-tight uppercase drop-shadow-lg mb-1">{title}</p>
                <div className="flex justify-between items-end">
                   <p className="text-xs text-emerald-400 font-mono font-bold">{cost.toLocaleString()} $CAP</p>
-                  <span className="text-[9px] text-zinc-500 font-mono uppercase group-hover:text-cyan-400 transition-colors">Construct</span>
+                  {!disabled && <span className="text-[9px] text-zinc-500 font-mono uppercase group-hover:text-cyan-400 transition-colors animate-pulse">Execute Market Event</span>}
                </div>
             </div>
          </div>

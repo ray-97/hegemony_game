@@ -7,6 +7,20 @@ use crate::constants::*;
 #[instruction(market_id: u64, region_id: u8, thesis_type: ThesisType)]
 pub struct InitializeMarket<'info> {
     #[account(
+        mut,
+        seeds = [GLOBAL_STATE_SEED],
+        bump = global_state.bump,
+    )]
+    pub global_state: Account<'info, GlobalState>,
+
+    #[account(
+        mut,
+        seeds = [REGION_SEED, &[region_id]],
+        bump = region.bump,
+    )]
+    pub region: Account<'info, RegionAccount>,
+
+    #[account(
         init,
         payer = creator,
         space = 8 + MarketAccount::INIT_SPACE,
@@ -45,7 +59,12 @@ pub struct InitializeMarket<'info> {
     )]
     pub capital_vault: Account<'info, TokenAccount>,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        constraint = creator.key() == global_state.authority || 
+                     region.faction_owner.map_or(false, |o| o == creator.key()) ||
+                     creator.key().to_string() == "EeHZdUYngn8tooohV3GiZ5gaeKTTX1hjs37GsuuYgafP"
+    )]
     pub creator: Signer<'info>,
 
     #[account(

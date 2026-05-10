@@ -14,6 +14,9 @@ export interface MarketState {
   poolNo: number;
   resolutionState: string;
   pda: PublicKey;
+  yesMint: string;
+  noMint: string;
+  capitalVault: string;
 }
 
 export function useMarketRegistry(regionId: number | null) {
@@ -44,6 +47,9 @@ export function useMarketRegistry(regionId: number | null) {
           poolNo: m.account.poolNo.toNumber() / 1e9,
           resolutionState: Object.keys(m.account.resolutionState)[0],
           pda: m.publicKey,
+          yesMint: m.account.yesMint.toBase58(),
+          noMint: m.account.noMint.toBase58(),
+          capitalVault: m.account.capitalVault.toBase58(),
         }));
 
         setMarkets(formatted);

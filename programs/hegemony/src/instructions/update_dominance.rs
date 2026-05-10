@@ -35,9 +35,8 @@ pub fn update_dominance_handler(ctx: Context<UpdateRegionDominance>) -> Result<(
     let market = &ctx.accounts.market;
 
     // Formula: R_r = (α × I) + (β × MCI) - (γ × V)
-    // Simplified for MVP:
     // α = 10 per sector level
-    // β = 1 per 100 $CAP of net confidence (Pool_Yes - Pool_No)
+    // β = 1 per 100 $CAP of net confidence (Pool_No - Pool_Yes)
     // γ = 1 per volatility point
     
     let sector_score = (region.energy_level as i64)
@@ -45,7 +44,9 @@ pub fn update_dominance_handler(ctx: Context<UpdateRegionDominance>) -> Result<(
         .checked_add(region.logistics_level as i64).unwrap()
         .checked_mul(10).unwrap();
 
-    let mci = (market.pool_yes as i64).checked_sub(market.pool_no as i64).unwrap()
+    // In our AMM, buying YES increases pool_no and decreases pool_yes.
+    // So Confidence (MCI) = pool_no - pool_yes.
+    let mci = (market.pool_no as i64).checked_sub(market.pool_yes as i64).unwrap()
         .checked_div(100).unwrap_or(0);
 
     let raw_score = sector_score
@@ -63,6 +64,6 @@ pub fn update_dominance_handler(ctx: Context<UpdateRegionDominance>) -> Result<(
         region.volatility_penalty -= 1;
     }
 
-    msg!("Region {} dominance updated to {}", region.id, region.dominance);
+    msg!("Region {} dominance updated to {} (MCI: {})", region.id, region.dominance, mci);
     Ok(())
 }
