@@ -4,7 +4,7 @@ use crate::state::*;
 use crate::constants::*;
 
 #[derive(Accounts)]
-#[instruction(market_id: u64, region_id: u8, thesis_type: ThesisType)]
+#[instruction(market_id: u64, region_id: u8, thesis_type: u8)]
 pub struct InitializeMarket<'info> {
     #[account(
         mut,
@@ -27,7 +27,7 @@ pub struct InitializeMarket<'info> {
         seeds = [MARKET_SEED, market_id.to_le_bytes().as_ref()],
         bump
     )]
-    pub market: Account<'info, MarketAccount>,
+    pub market: Box<Account<'info, MarketAccount>>,
 
     #[account(
         init,
@@ -37,7 +37,7 @@ pub struct InitializeMarket<'info> {
         seeds = [YES_MINT_SEED, market_id.to_le_bytes().as_ref()],
         bump
     )]
-    pub yes_mint: Account<'info, Mint>,
+    pub yes_mint: Box<Account<'info, Mint>>,
 
     #[account(
         init,
@@ -47,7 +47,7 @@ pub struct InitializeMarket<'info> {
         seeds = [NO_MINT_SEED, market_id.to_le_bytes().as_ref()],
         bump
     )]
-    pub no_mint: Account<'info, Mint>,
+    pub no_mint: Box<Account<'info, Mint>>,
 
     #[account(
         init,
@@ -57,7 +57,7 @@ pub struct InitializeMarket<'info> {
         seeds = [b"market_vault".as_ref(), market_id.to_le_bytes().as_ref()],
         bump
     )]
-    pub capital_vault: Account<'info, TokenAccount>,
+    pub capital_vault: Box<Account<'info, TokenAccount>>,
 
     #[account(
         mut,
@@ -72,7 +72,7 @@ pub struct InitializeMarket<'info> {
         constraint = creator_capital_account.owner == creator.key(),
         constraint = creator_capital_account.mint == capital_mint.key()
     )]
-    pub creator_capital_account: Account<'info, TokenAccount>,
+    pub creator_capital_account: Box<Account<'info, TokenAccount>>,
 
     pub capital_mint: Account<'info, Mint>,
     pub token_program: Program<'info, Token>,
@@ -84,7 +84,7 @@ pub fn initialize_market_handler(
     ctx: Context<InitializeMarket>,
     market_id: u64,
     region_id: u8,
-    thesis_type: ThesisType,
+    thesis_type: u8,
     liquidity: u64,
 ) -> Result<()> {
     let market = &mut ctx.accounts.market;
@@ -100,6 +100,11 @@ pub fn initialize_market_handler(
     market.pool_no = liquidity;
     market.resolution_state = ResolutionState::Unresolved;
     market.bump = ctx.bumps.market;
+
+    msg!("Initializing Market: {}", market.market_id);
+    msg!("YES Mint: {:?}", market.yes_mint);
+    msg!("NO Mint: {:?}", market.no_mint);
+    msg!("Vault: {:?}", market.capital_vault);
 
     // Transfer initial liquidity from creator to market capital vault
     token::transfer(

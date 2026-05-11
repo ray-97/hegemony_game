@@ -12,7 +12,7 @@ pub struct TradeShares<'info> {
         bump = market.bump,
         constraint = market.resolution_state == ResolutionState::Unresolved @ HegemonyError::MarketResolved
     )]
-    pub market: Account<'info, MarketAccount>,
+    pub market: Box<Account<'info, MarketAccount>>,
 
     #[account(mut)]
     pub trader: Signer<'info>,
@@ -21,26 +21,26 @@ pub struct TradeShares<'info> {
         mut,
         constraint = vault_token_account.key() == market.capital_vault
     )]
-    pub vault_token_account: Account<'info, TokenAccount>,
+    pub vault_token_account: Box<Account<'info, TokenAccount>>,
 
     #[account(
         mut,
         constraint = trader_capital_account.owner == trader.key(),
         constraint = trader_capital_account.mint == vault_token_account.mint
     )]
-    pub trader_capital_account: Account<'info, TokenAccount>,
+    pub trader_capital_account: Box<Account<'info, TokenAccount>>,
 
     #[account(
         mut,
         constraint = yes_mint.key() == market.yes_mint
     )]
-    pub yes_mint: Account<'info, Mint>,
+    pub yes_mint: Box<Account<'info, Mint>>,
 
     #[account(
         mut,
         constraint = no_mint.key() == market.no_mint
     )]
-    pub no_mint: Account<'info, Mint>,
+    pub no_mint: Box<Account<'info, Mint>>,
 
     #[account(
         init_if_needed,
@@ -48,7 +48,7 @@ pub struct TradeShares<'info> {
         associated_token::mint = yes_mint,
         associated_token::authority = trader
     )]
-    pub trader_yes_account: Account<'info, TokenAccount>,
+    pub trader_yes_account: Box<Account<'info, TokenAccount>>,
 
     #[account(
         init_if_needed,
@@ -56,7 +56,7 @@ pub struct TradeShares<'info> {
         associated_token::mint = no_mint,
         associated_token::authority = trader
     )]
-    pub trader_no_account: Account<'info, TokenAccount>,
+    pub trader_no_account: Box<Account<'info, TokenAccount>>,
 
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, anchor_spl::associated_token::AssociatedToken>,

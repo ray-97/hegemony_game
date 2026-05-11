@@ -79,6 +79,37 @@ export function TreasuryModal({ isOpen, onClose }: TreasuryModalProps) {
     }
   };
 
+  const handleWithdraw = async () => {
+    if (!program || !publicKey) return;
+    setIsSubmitting(true);
+    try {
+      const capUnits = new anchor.BN(parseFloat(solAmount) * 1000).mul(new anchor.BN(10).pow(new anchor.BN(9)));
+      const [globalStatePda] = PublicKey.findProgramAddressSync([Buffer.from("global_state")], program.programId);
+      const globalState = await program.account.globalState.fetch(globalStatePda);
+      const userAta = getAssociatedTokenAddressSync(globalState.capitalMint, publicKey);
+
+      await program.methods
+        .withdrawSol(capUnits)
+        .accounts({
+          globalState: globalStatePda,
+          capitalMint: globalState.capitalMint,
+          treasury: globalState.treasury,
+          user: publicKey,
+          userCapitalAccount: userAta,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+        } as any)
+        .rpc();
+
+      console.log(`Successfully withdrew SOL from ${solAmount} * 1000 $CAP`);
+      onClose();
+    } catch (err) {
+      console.error("Withdrawal failed:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[400px] bg-zinc-950 border-zinc-800 text-zinc-100">
@@ -131,24 +162,34 @@ export function TreasuryModal({ isOpen, onClose }: TreasuryModalProps) {
                   onChange={(e) => setSolAmount(e.target.value)}
                   className="bg-zinc-900 border-zinc-800 font-mono text-amber-500 text-xs h-9"
                 />
-                <span className="text-xs font-mono text-zinc-400">SOL</span>
+                <span className="text-xs font-mono text-zinc-400">SOL SCALE</span>
               </div>
             </div>
 
             <div className="p-3 rounded-lg bg-zinc-900/30 border border-zinc-800 space-y-1 font-mono text-[10px]">
               <div className="flex justify-between">
-                <span className="text-zinc-500 uppercase">You Receive</span>
+                <span className="text-zinc-500 uppercase">Exchange Rate</span>
                 <span className="text-emerald-400 font-bold">{parseFloat(solAmount) * 1000} $CAP</span>
               </div>
             </div>
 
-            <Button 
-              disabled={issubmitting || !publicKey}
-              onClick={handleDeposit}
-              className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold uppercase tracking-widest text-[10px] h-9"
-            >
-              {issubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Authorize SOL Transfer"}
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                disabled={issubmitting || !publicKey}
+                onClick={handleDeposit}
+                className="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white font-bold uppercase tracking-widest text-[9px] h-9"
+              >
+                {issubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Deposit SOL"}
+              </Button>
+              <Button 
+                disabled={issubmitting || !publicKey}
+                onClick={handleWithdraw}
+                variant="outline"
+                className="flex-1 border-rose-900 text-rose-500 hover:bg-rose-900/10 font-bold uppercase tracking-widest text-[9px] h-9"
+              >
+                {issubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Extract to SOL"}
+              </Button>
+            </div>
           </div>
         </div>
       </DialogContent>

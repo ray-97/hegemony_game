@@ -77,13 +77,3 @@ npm install
 npm run dev
 ```
 
----
-
-## 🏆 Hackathon Innovation Highlights
-1.  **Blinks Integration:** Users can delegate $CAP to their favorite factions directly from X (Twitter) via our custom Solana Action.
-2.  **AMM Solvency:** Custom integer math implementation that rounds in favor of the pool, preventing the $k$ invariant from decaying during high-volume trading.
-3.  **Abstracted UX:** Using Privy to allow non-crypto users to participate in complex DeFi prediction markets through a simple "Game-Board" interface.
-
----
-
-**Developed for the Colosseum Frontier Hackathon (2026).**

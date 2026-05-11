@@ -77,7 +77,7 @@ pub mod hegemony {
         ctx: Context<InitializeMarket>,
         market_id: u64,
         region_id: u8,
-        thesis_type: ThesisType,
+        thesis_type: u8,
         liquidity: u64,
     ) -> Result<()> {
         initialize_market::initialize_market_handler(ctx, market_id, region_id, thesis_type, liquidity)
@@ -135,10 +135,18 @@ pub mod hegemony {
     }
 
     pub fn deposit_sol(ctx: Context<DepositSol>, amount_lamports: u64) -> Result<()> {
-        treasury::deposit_sol_handler(ctx, amount_lamports)
+        crate::instructions::treasury::deposit_sol_handler(ctx, amount_lamports)
+    }
+
+    pub fn withdraw_sol(ctx: Context<WithdrawSol>, amount_capital: u64) -> Result<()> {
+        crate::instructions::treasury::withdraw_sol_handler(ctx, amount_capital)
     }
 
     pub fn initialize_player_profile(ctx: Context<InitializePlayerProfile>, name: String) -> Result<()> {
         crate::instructions::initialize_player_profile::initialize_player_profile_handler(ctx, name)
+    }
+
+    pub fn initiate_covert_op(ctx: Context<InitiateCovertOp>, initiator_region_id: u8) -> Result<()> {
+        crate::instructions::covert_op::initiate_covert_op_handler(ctx, initiator_region_id)
     }
 }

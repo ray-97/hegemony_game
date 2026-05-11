@@ -50,7 +50,8 @@ async function main() {
   // 2. Create Infrastructure Market (ID: 0 -> Energy Upgrade)
   const regionId = 1;
   const eventIndex = 0; 
-  const marketId = new anchor.BN(Date.now() / 1000).mul(new anchor.BN(100)).add(new anchor.BN(eventIndex));
+  // Use Math.floor to ensure integer for BN
+  const marketId = new anchor.BN(Math.floor(Date.now() / 1000)).mul(new anchor.BN(100)).add(new anchor.BN(eventIndex));
   const liquidity = new anchor.BN(500).mul(new anchor.BN(10).pow(new anchor.BN(9)));
 
   const [regionPda] = PublicKey.findProgramAddressSync(
@@ -65,11 +66,32 @@ async function main() {
   const [noMintPda] = PublicKey.findProgramAddressSync([Buffer.from("no_mint"), marketId.toArrayLike(Buffer, "le", 8)], program.programId);
   const [vaultPda] = PublicKey.findProgramAddressSync([Buffer.from("market_vault"), marketId.toArrayLike(Buffer, "le", 8)], program.programId);
 
+  console.log("PDAs Derived:");
+  console.log("- Market:", marketPda.toBase58());
+  console.log("- YES Mint:", yesMintPda.toBase58());
+  console.log("- NO Mint:", noMintPda.toBase58());
+
   const userCapitalAta = getAssociatedTokenAddressSync(globalState.capitalMint, authority.publicKey);
+
+  // Obtain some $CAP via deposit_sol
+  console.log("Depositing 10 SOL to obtain 10,000 $CAP...");
+  await program.methods
+    .depositSol(new anchor.BN(10 * 1e9))
+    .accounts({
+      globalState: globalStatePda,
+      treasury: globalState.treasury,
+      user: authority.publicKey,
+      userCapitalAccount: userCapitalAta,
+      capitalMint: globalState.capitalMint,
+      tokenProgram: TOKEN_PROGRAM_ID,
+      associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+      systemProgram: anchor.web3.SystemProgram.programId,
+    } as any)
+    .rpc();
 
   console.log(`Creating Market ${marketId.toString()} for Energy Upgrade...`);
   await program.methods
-    .initializeMarket(marketId, regionId, { macro: {} }, liquidity)
+    .initializeMarket(marketId, regionId, 0, liquidity) // 0 for Macro
     .accounts({
       globalState: globalStatePda,
       region: regionPda,
@@ -85,6 +107,14 @@ async function main() {
       rent: anchor.web3.SYSVAR_RENT_PUBKEY,
     } as any)
     .rpc();
+
+  // Debug: Fetch market account and check stored keys
+  const marketAcc = await program.account.marketAccount.fetch(marketPda);
+  console.log("Market Account Stored Data:");
+  console.log("- yes_mint (stored):", marketAcc.yesMint.toBase58());
+  console.log("- no_mint (stored):", marketAcc.noMint.toBase58());
+  console.log("- yes_mint (expected):", yesMintPda.toBase58());
+  console.log("- no_mint (expected):", noMintPda.toBase58());
 
   // 3. Trade YES to create imbalance
   console.log("Trading 100 $CAP for YES shares...");

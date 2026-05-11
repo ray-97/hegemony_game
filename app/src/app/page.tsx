@@ -23,15 +23,28 @@ export default function GameDashboard() {
   const [selectedRegionId, setSelectedRegionId] = useState<number | null>(null);
   const [isTreasuryOpen, setIsTreasuryOpen] = useState(false);
 
+  const [alerts, setAlerts] = useState<{id: number, type: string, text: string}[]>([]);
+
   useEffect(() => {
     setMounted(true);
-  }, []);
+    
+    // Fetch live intelligence reports
+    const fetchIntel = async () => {
+      try {
+        const res = await fetch('/data/intelligence.json');
+        if (res.ok) {
+          const data = await res.json();
+          setAlerts(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch intelligence:", err);
+      }
+    };
 
-  // Mock alerts for now (can be hooked to intelligence_agency.py later)
-  const alerts = [
-    { id: 1, type: "Strategic", text: "Global transition to Active phase complete. Regional yields are now liquid." },
-    { id: 2, type: "Market", text: "Predictive algorithms suggest high volatility in North American tech markets." },
-  ];
+    fetchIntel();
+    const interval = setInterval(fetchIntel, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   if (!mounted) {
     return (

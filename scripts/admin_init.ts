@@ -31,7 +31,7 @@ async function main() {
   // 3. Initialize Global State
   console.log("Initializing Global State...");
   const treasury = anchor.web3.Keypair.generate();
-  const auctionDuration = new anchor.BN(0); // 0s Auction for instant testing
+  const auctionDuration = new anchor.BN(300); // 5-minute auction window
   const epochDuration = new anchor.BN(86400); // 1d Epoch
   
   await program.methods

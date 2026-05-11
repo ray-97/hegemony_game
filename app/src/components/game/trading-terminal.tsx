@@ -286,12 +286,59 @@ export function TradingTerminal({ regionId, isOpen, onClose }: TradingTerminalPr
   };
 
   const handleInitiateOp = async (opType: string, index: number) => {
-     if (!targetRegionId) {
-        console.error("No target region selected");
+    if (!program || !publicKey || !targetRegionId || !userHomeRegionId) {
+      console.error("Missing requirements for Covert Op");
+      return;
+    }
+    
+    setIsSubmitting(true);
+    try {
+      // For the demo, we need to target a SPECIFIC market in the target region.
+      // Let's look for any unresolved market in the target region.
+      const allMarkets = await program.account.marketAccount.all();
+      const targetMarket = allMarkets.find(m => 
+        m.account.regionId === targetRegionId && 
+        Object.keys(m.account.resolutionState)[0] === 'unresolved'
+      );
+
+      if (!targetMarket) {
+        console.error("No active market found in target region to sabotage.");
+        // Fallback: Just create a market if none exists (for demo flow)
+        await handleCreateMarket({ macro: {} }, index);
+        setIsSubmitting(false);
         return;
-     }
-     // Create the micro thesis market in the current region but targeting the other one (logic-wise)
-     await handleCreateMarket({ micro: {} }, index);
+      }
+
+      const [globalStatePda] = PublicKey.findProgramAddressSync([Buffer.from("global_state")], program.programId);
+      const [diplomacyPda] = PublicKey.findProgramAddressSync([Buffer.from("diplomacy"), publicKey.toBuffer()], program.programId);
+      const [targetRegionPda] = PublicKey.findProgramAddressSync([Buffer.from("region"), Buffer.from([targetRegionId])], program.programId);
+      
+      const gState = await program.account.globalState.fetch(globalStatePda);
+      const userCapitalAta = getAssociatedTokenAddressSync(gState.capitalMint, publicKey);
+
+      console.log(`Initiating ${opType} against Market ${targetMarket.publicKey.toBase58()}`);
+
+      await program.methods
+        .initiateCovertOp(userHomeRegionId)
+        .accounts({
+          globalState: globalStatePda,
+          targetRegion: targetRegionPda,
+          market: targetMarket.publicKey,
+          initiatorDiplomacy: diplomacyPda,
+          initiator: publicKey,
+          initiatorCapitalAccount: userCapitalAta,
+          marketVault: targetMarket.account.capitalVault,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+        } as any)
+        .rpc();
+      
+      console.log("Covert Operation Success");
+    } catch (err) {
+      console.error("Covert Op failed:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const otherRegions = Object.entries(REGION_NAMES)
