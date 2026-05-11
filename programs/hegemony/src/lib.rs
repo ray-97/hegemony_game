@@ -145,8 +145,4 @@ pub mod hegemony {
     pub fn initialize_player_profile(ctx: Context<InitializePlayerProfile>, name: String) -> Result<()> {
         crate::instructions::initialize_player_profile::initialize_player_profile_handler(ctx, name)
     }
-
-    pub fn initiate_covert_op(ctx: Context<InitiateCovertOp>, initiator_region_id: u8) -> Result<()> {
-        crate::instructions::covert_op::initiate_covert_op_handler(ctx, initiator_region_id)
-    }
 }
