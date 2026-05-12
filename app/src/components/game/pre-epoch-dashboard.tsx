@@ -112,6 +112,32 @@ export function PreEpochDashboard({ regionId }: PreEpochDashboardProps) {
     }
   };
 
+  const handleResolveAuction = async () => {
+    if (!program || !publicKey) return;
+    setIsSubmitting(true);
+    try {
+      const [globalStatePda] = PublicKey.findProgramAddressSync([Buffer.from("global_state")], program.programId);
+      const [regionPda] = PublicKey.findProgramAddressSync([Buffer.from("region"), Buffer.from([regionId])], program.programId);
+      const [leaderboardPda] = PublicKey.findProgramAddressSync([Buffer.from("leaderboard"), Buffer.from([regionId])], program.programId);
+
+      await program.methods
+        .resolveAuction()
+        .accounts({
+          globalState: globalStatePda,
+          leaderboard: leaderboardPda,
+          region: regionPda,
+          authority: publicKey,
+        } as any)
+        .rpc();
+      
+      console.log("Auction resolved successfully");
+    } catch (err) {
+      console.error("Auction resolution failed:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="space-y-8">
       {/* SECTION 1: GLOBAL STANDINGS */}
@@ -135,8 +161,13 @@ export function PreEpochDashboard({ regionId }: PreEpochDashboardProps) {
               </div>
             </div>
             <div className="text-right">
-              <span className="text-[10px] font-mono text-zinc-500 uppercase">Weight</span>
+              <span className="text-[10px] font-mono text-zinc-500 uppercase">Power Breakdown</span>
               <div className="text-lg font-bold text-zinc-100">{leaderboard?.totalBidWeight.toLocaleString()} $CAP</div>
+              {leaderboard?.delegatedWeight && leaderboard.delegatedWeight > 0 && (
+                <div className="text-[9px] font-mono text-cyan-500 uppercase">
+                   ({leaderboard.delegatedWeight.toLocaleString()} Delegated)
+                </div>
+              )}
             </div>
           </div>
           
@@ -145,6 +176,15 @@ export function PreEpochDashboard({ regionId }: PreEpochDashboardProps) {
                <ExternalLink className="w-3 h-3 mr-2" /> View Regional Manifesto
             </Button>
           )}
+
+          <Button 
+            onClick={handleResolveAuction} 
+            disabled={isSubmitting}
+            className="w-full bg-zinc-100 text-black hover:bg-white text-[10px] font-bold h-9 uppercase tracking-widest"
+          >
+            {isSubmitting ? <Loader2 className="w-3 h-3 animate-spin mr-2" /> : <Crown className="w-3 h-3 mr-2" />}
+            Finalize Regional Election
+          </Button>
         </CardContent>
       </Card>
 

@@ -18,6 +18,7 @@ import { PublicKey, SystemProgram } from "@solana/web3.js";
 import { getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { Loader2, Coins, UserCircle2 } from "lucide-react";
 import { usePlayerProfile } from "@/hooks/usePlayerProfile";
+import { useUserBalances } from "@/hooks/useUserBalances";
 
 interface TreasuryModalProps {
   isOpen: boolean;
@@ -28,13 +29,32 @@ export function TreasuryModal({ isOpen, onClose }: TreasuryModalProps) {
   const [solAmount, setSolAmount] = useState("0.1");
   const [newName, setNewName] = useState("");
   const [issubmitting, setIsSubmitting] = useState(false);
-  const { program } = useHegemony();
+  const { program, connection } = useHegemony();
   const { publicKey } = useWallet();
   const { name: currentName, updateName, isLoading: profileLoading } = usePlayerProfile();
+  const userBalances = useUserBalances();
 
   useEffect(() => {
     if (currentName) setNewName(currentName);
   }, [currentName]);
+
+  const handleAirdrop = async () => {
+    if (!publicKey || !connection) return;
+    setIsSubmitting(true);
+    try {
+      const signature = await connection.requestAirdrop(publicKey, 2 * 1e9);
+      const latestBlockhash = await connection.getLatestBlockhash();
+      await connection.confirmTransaction({
+        signature,
+        ...latestBlockhash
+      });
+      console.log("Airdrop successful: 2 SOL");
+    } catch (err) {
+      console.error("Airdrop failed:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleDeposit = async () => {
     if (!program || !publicKey) return;
@@ -124,6 +144,23 @@ export function TreasuryModal({ isOpen, onClose }: TreasuryModalProps) {
         </DialogHeader>
 
         <div className="space-y-6 py-4">
+          {/* WALLET STATUS */}
+          {userBalances.sol === 0 && (
+            <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/50 flex flex-col gap-1">
+              <span className="text-[10px] font-bold text-rose-500 uppercase tracking-widest">Funding Required</span>
+              <p className="text-[9px] text-rose-400 font-mono">Your local wallet is empty. You must click "Airdrop Dev SOL" before you can initialize your profile or trade.</p>
+            </div>
+          )}
+
+          <div className="flex justify-between items-center px-1">
+             <span className="text-[10px] font-mono text-zinc-500 uppercase">Wallet Balance</span>
+             <span className={`text-xs font-mono font-bold ${userBalances.sol === 0 ? 'text-rose-500' : 'text-cyan-400'}`}>
+               {userBalances.sol.toFixed(2)} SOL
+             </span>
+          </div>
+
+          <div className="h-px bg-zinc-800" />
+
           {/* PROFILE SECTION */}
           <div className="space-y-3">
              <label className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Player Alias</label>
@@ -171,6 +208,17 @@ export function TreasuryModal({ isOpen, onClose }: TreasuryModalProps) {
                 <span className="text-zinc-500 uppercase">Exchange Rate</span>
                 <span className="text-emerald-400 font-bold">{parseFloat(solAmount) * 1000} $CAP</span>
               </div>
+            </div>
+
+            <div className="flex gap-2">
+              <Button 
+                disabled={issubmitting || !publicKey}
+                onClick={handleAirdrop}
+                variant="ghost"
+                className="flex-1 border border-dashed border-cyan-800 text-cyan-600 hover:text-cyan-400 hover:bg-cyan-900/10 font-mono text-[9px] uppercase h-9"
+              >
+                 Airdrop Dev SOL
+              </Button>
             </div>
 
             <div className="flex gap-2">

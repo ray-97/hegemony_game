@@ -8,6 +8,7 @@ import { getAssociatedTokenAddressSync } from "@solana/spl-token";
 
 export interface UserBalances {
   capital: number;
+  sol: number;
   bonds: Record<number, number>; // region_id -> amount
   isLoading: boolean;
 }
@@ -17,6 +18,7 @@ export function useUserBalances() {
   const { publicKey } = useWallet();
   const [balances, setBalances] = useState<UserBalances>({
     capital: 0,
+    sol: 0,
     bonds: {},
     isLoading: true,
   });
@@ -29,6 +31,10 @@ export function useUserBalances() {
 
     const fetchBalances = async () => {
       try {
+        // 0. Get SOL Balance
+        const solBalance = await connection.getBalance(publicKey);
+        const solUi = solBalance / 1e9;
+
         // 1. Get Capital Balance
         const [globalStatePda] = PublicKey.findProgramAddressSync(
           [Buffer.from("global_state")],
@@ -62,6 +68,7 @@ export function useUserBalances() {
         }
 
         setBalances({
+          sol: solUi,
           capital: capitalBalance,
           bonds,
           isLoading: false,

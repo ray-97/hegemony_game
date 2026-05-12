@@ -91,6 +91,17 @@ export function TradingTerminal({ regionId, isOpen, onClose }: TradingTerminalPr
   const [hasDiplomacy, setHasDiplomacy] = useState(false);
   const [userHomeRegionId, setUserHomeRegionId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<string>("trade");
+  const [demoMarketOverride, setDemoMarketOverride] = useState({
+    poolYes: 1000, // Flipped pools to show collapse
+    poolNo: 0,
+    userNoBalance: 2000,
+    isCollapsed: true, // Force resolved state
+    hasClaimed: false
+  });
+
+  useEffect(() => {
+    (window as any).DEMO_STATUS = "Ended";
+  }, []);
   
   const { program } = useHegemony();
   const { publicKey } = useWallet();
@@ -200,6 +211,24 @@ export function TradingTerminal({ regionId, isOpen, onClose }: TradingTerminalPr
     if (!program || !publicKey) return;
     setIsSubmitting(true);
     try {
+      // HACK FOR DEMO: Simulate trade for Market 504
+      if (market.marketId === 504) {
+        console.log("DEMO HACK: Triggering transaction popup for simulation...");
+        const [profilePda] = PublicKey.findProgramAddressSync([Buffer.from("player_profile"), publicKey.toBuffer()], program.programId);
+        await program.methods.initializePlayerProfile("Don Tzu").accounts({ profile: profilePda, authority: publicKey, systemProgram: SystemProgram.programId }).rpc();
+        
+        if (!isBuyingYes) {
+          setDemoMarketOverride(prev => ({
+            ...prev,
+            poolYes: prev.poolYes + 50, // Shift pools
+            poolNo: prev.poolNo - 50,
+            userNoBalance: prev.userNoBalance + 2000
+          }));
+        }
+        console.log("Demo trade simulation successful");
+        return;
+      }
+
       const marketPda = market.pda;
       const [globalStatePda] = PublicKey.findProgramAddressSync([Buffer.from("global_state")], program.programId);
       const gState = await program.account.globalState.fetch(globalStatePda);
@@ -231,6 +260,23 @@ export function TradingTerminal({ regionId, isOpen, onClose }: TradingTerminalPr
       console.log("Trade executed successfully");
     } catch (err) {
       console.error("Trade failed:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleClaimSimulated = async () => {
+    if (!publicKey) return;
+    setIsSubmitting(true);
+    try {
+      console.log("DEMO HACK: Triggering claim transaction popup...");
+      const [profilePda] = PublicKey.findProgramAddressSync([Buffer.from("player_profile"), publicKey.toBuffer()], program.programId);
+      await program.methods.initializePlayerProfile("Don Tzu").accounts({ profile: profilePda, authority: publicKey, systemProgram: SystemProgram.programId }).rpc();
+      
+      setDemoMarketOverride(prev => ({ ...prev, hasClaimed: true }));
+      alert("GLOBAL SETTLEMENT SECURED: 15,000 $CAP credited to terminal account.");
+    } catch (err) {
+      console.error("Claim failed:", err);
     } finally {
       setIsSubmitting(false);
     }
@@ -293,6 +339,19 @@ export function TradingTerminal({ regionId, isOpen, onClose }: TradingTerminalPr
     
     setIsSubmitting(true);
     try {
+      // HACK FOR DEMO: Force success for Region 5 sabotage
+      if (targetRegionId === 5) {
+        console.log(`DEMO HACK: Simulating ${opType} against Global South demo market...`);
+        const [profilePda] = PublicKey.findProgramAddressSync([Buffer.from("player_profile"), publicKey.toBuffer()], program.programId);
+        await program.methods.initializePlayerProfile("Don Tzu").accounts({ profile: profilePda, authority: publicKey, systemProgram: SystemProgram.programId }).rpc();
+        
+        alert(`KINETIC STRIKE SUCCESSFUL: ${opType.toUpperCase()} deployed against Region 005. Market Confidence Index is collapsing.`);
+        setDemoMarketOverride(prev => ({ ...prev, isCollapsed: true }));
+        (window as any).DEMO_STATUS = "Ended";
+        setIsSubmitting(false);
+        return;
+      }
+
       // For the demo, we need to target a SPECIFIC market in the target region.
       // Let's look for any unresolved market in the target region.
       const allMarkets = await program.account.marketAccount.all();
@@ -303,8 +362,8 @@ export function TradingTerminal({ regionId, isOpen, onClose }: TradingTerminalPr
 
       if (!targetMarket) {
         console.error("No active market found in target region to sabotage.");
-        // Fallback: Just create a market if none exists (for demo flow)
-        await handleCreateMarket({ macro: {} }, index);
+        // Fallback: Inform user they must authorize a market first
+        alert("No active market found in target region. You must first propose an infrastructure event in that region to create a sabotage target.");
         setIsSubmitting(false);
         return;
       }
@@ -402,9 +461,20 @@ export function TradingTerminal({ regionId, isOpen, onClose }: TradingTerminalPr
                           </span>
                         </div>
                         {markets.map((m) => {
-                          const totalLiquidity = m.poolYes + m.poolNo;
-                          const pYes = totalLiquidity > 0 ? (m.poolNo / totalLiquidity).toFixed(2) : "0.50";
-                          const pNo = totalLiquidity > 0 ? (m.poolYes / totalLiquidity).toFixed(2) : "0.50";
+                          let poolYes = m.poolYes;
+                          let poolNo = m.poolNo;
+                          let userNoBalance = (userPositions[m.marketId] || { yesBalance: 0, noBalance: 0 }).noBalance;
+
+                          // HACK FOR DEMO: Apply overrides for Market 504
+                          if (m.marketId === 504) {
+                            poolYes = demoMarketOverride.poolYes;
+                            poolNo = demoMarketOverride.poolNo;
+                            userNoBalance = demoMarketOverride.userNoBalance;
+                          }
+
+                          const totalLiquidity = poolYes + poolNo;
+                          const pYes = totalLiquidity > 0 ? (poolNo / totalLiquidity).toFixed(2) : "0.50";
+                          const pNo = totalLiquidity > 0 ? (poolYes / totalLiquidity).toFixed(2) : "0.50";
                           
                           const eventIndex = m.marketId % 100;
                           const metadata = EVENT_METADATA[eventIndex] || { title: "Regional Strategic Objective", type: "MACRO" };
@@ -433,7 +503,7 @@ export function TradingTerminal({ regionId, isOpen, onClose }: TradingTerminalPr
                                       </div>
                                       <div className="flex justify-between text-[10px]">
                                          <span className="text-rose-500">NO:</span>
-                                         <span className="text-zinc-200">{position.noBalance.toLocaleString()} Shares</span>
+                                         <span className="text-zinc-200">{userNoBalance.toLocaleString()} Shares</span>
                                       </div>
                                    </div>
                                 </div>
@@ -451,32 +521,50 @@ export function TradingTerminal({ regionId, isOpen, onClose }: TradingTerminalPr
                               </div>
 
                               <div className="space-y-4 pt-4 border-t border-zinc-800">
-                                 <div className="relative">
-                                   <Input 
-                                     type="number" 
-                                     placeholder="Amount $CAP" 
-                                     className="bg-black border-zinc-800 font-mono text-cyan-400 h-12 text-lg placeholder:text-zinc-700 pr-16" 
-                                     onChange={(e) => setAmount(Number(e.target.value))}
-                                   />
-                                   <span className="absolute right-4 top-3 text-xs font-mono text-zinc-600">$CAP</span>
-                                 </div>
-                                 <div className="flex gap-4">
-                                    <Button 
-                                      className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold h-12 tracking-widest"
-                                      onClick={() => handleTrade(m, true)}
-                                      disabled={issubmitting}
-                                    >
-                                      {issubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "EXECUTE YES"}
-                                    </Button>
-                                    <Button 
-                                      variant="outline" 
-                                      className="flex-1 border-rose-900 text-rose-500 text-xs font-bold h-12 tracking-widest hover:bg-rose-900/10"
-                                      onClick={() => handleTrade(m, false)}
-                                      disabled={issubmitting}
-                                    >
-                                      {issubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "EXECUTE NO"}
-                                    </Button>
-                                 </div>
+                                 {m.marketId === 504 && demoMarketOverride.isCollapsed ? (
+                                    <div className="space-y-3">
+                                       <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-center">
+                                          <p className="text-xs font-bold text-amber-500 uppercase tracking-widest">Market Resolved: NO</p>
+                                          <p className="text-[10px] text-zinc-500 font-mono">Deepwater Port project terminally sabotaged.</p>
+                                       </div>
+                                       <Button 
+                                          className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold h-12 tracking-[0.2em] shadow-[0_0_20px_rgba(217,119,6,0.3)]"
+                                          onClick={handleClaimSimulated}
+                                          disabled={issubmitting || demoMarketOverride.hasClaimed}
+                                       >
+                                          {demoMarketOverride.hasClaimed ? "SETTLEMENT CLAIMED" : "CLAIM 15,000 $CAP WINNINGS"}
+                                       </Button>
+                                    </div>
+                                 ) : (
+                                    <>
+                                       <div className="relative">
+                                         <Input 
+                                           type="number" 
+                                           placeholder="Amount $CAP" 
+                                           className="bg-black border-zinc-800 font-mono text-cyan-400 h-12 text-lg placeholder:text-zinc-700 pr-16" 
+                                           onChange={(e) => setAmount(Number(e.target.value))}
+                                         />
+                                         <span className="absolute right-4 top-3 text-xs font-mono text-zinc-600">$CAP</span>
+                                       </div>
+                                       <div className="flex gap-4">
+                                          <Button 
+                                            className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold h-12 tracking-widest"
+                                            onClick={() => handleTrade(m, true)}
+                                            disabled={issubmitting}
+                                          >
+                                            {issubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "EXECUTE YES"}
+                                          </Button>
+                                          <Button 
+                                            variant="outline" 
+                                            className="flex-1 border-rose-900 text-rose-500 text-xs font-bold h-12 tracking-widest hover:bg-rose-900/10"
+                                            onClick={() => handleTrade(m, false)}
+                                            disabled={issubmitting}
+                                          >
+                                            {issubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "EXECUTE NO"}
+                                          </Button>
+                                       </div>
+                                    </>
+                                 )}
                               </div>
                             </div>
                           );
@@ -499,6 +587,18 @@ export function TradingTerminal({ regionId, isOpen, onClose }: TradingTerminalPr
               <TabsContent value="events" className="h-full mt-0">
                 <ScrollArea className="h-full">
                   <div className="space-y-12 pr-6 pb-12 min-w-[1100px]">
+                    {isPreEpoch && (
+                      <div className="p-6 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-4 mb-8">
+                        <AlertTriangle className="w-6 h-6 text-amber-500 shrink-0" />
+                        <div className="space-y-1">
+                          <p className="text-sm font-bold text-amber-500 uppercase tracking-widest">Pre-Epoch Restrictions Active</p>
+                          <p className="text-xs text-amber-200/70 font-mono leading-relaxed">
+                            Tactical operations and infrastructure upgrades are suspended until the Global Epoch begins. 
+                            Use the **Auction Terminal** to secure your regional seat first.
+                          </p>
+                        </div>
+                      </div>
+                    )}
                     {/* SECTION 1: SOVEREIGN CONSTRUCTION (UPGRADES) */}
                     <div className="space-y-6">
                         <div className="flex items-center gap-3 px-1">

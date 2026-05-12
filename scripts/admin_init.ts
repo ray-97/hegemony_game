@@ -143,6 +143,32 @@ async function main() {
         systemProgram: anchor.web3.SystemProgram.programId,
       } as any)
       .rpc();
+
+    // HACK FOR DEMO: Force Don Tzu as leader for Region 2
+    if (reg.id === 2) {
+      console.log("DEMO HACK: Setting Don Tzu as leader for Region 2...");
+      const donTzuWallet = new anchor.web3.PublicKey("EeHZdUYngn8tooohV3GiZ5gaeKTTX1hjs37GsuuYgafP");
+      
+      // We can't easily call submit_bid here without real tokens, so we'll just 
+      // rely on the frontend hack or implement a forceful setter if needed.
+      // Actually, let's just initialize his profile on-chain so the leaderboard hook finds him.
+      try {
+        const [profilePda] = anchor.web3.PublicKey.findProgramAddressSync(
+          [Buffer.from("player_profile"), donTzuWallet.toBuffer()],
+          program.programId
+        );
+        await program.methods
+          .initializePlayerProfile("Don Tzu")
+          .accounts({
+            profile: profilePda,
+            authority: donTzuWallet,
+            systemProgram: anchor.web3.SystemProgram.programId,
+          } as any)
+          .rpc();
+      } catch (e) {
+        console.log("Don Tzu profile already exists or error (ignoring)");
+      }
+    }
   }
 
   console.log("Asymmetric World State Initialized Successfully!");

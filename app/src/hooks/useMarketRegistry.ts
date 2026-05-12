@@ -52,6 +52,24 @@ export function useMarketRegistry(regionId: number | null) {
           capitalVault: m.account.capitalVault.toBase58(),
         }));
 
+        // HACK FOR DEMO: Inject Region 5 Market (Deepwater Port, Index 4)
+        if (regionId === 5) {
+           const isEnded = (window as any).DEMO_STATUS === "Ended";
+           formatted.push({
+              marketId: 504,
+              regionId: 5,
+              creator: "11111111111111111111111111111111",
+              thesisType: "macro",
+              poolYes: isEnded ? 1000 : 300, 
+              poolNo: isEnded ? 0 : 700,
+              resolutionState: isEnded ? "resolvedNo" : "unresolved",
+              pda: PublicKey.default,
+              yesMint: PublicKey.default.toBase58(),
+              noMint: PublicKey.default.toBase58(),
+              capitalVault: PublicKey.default.toBase58(),
+           });
+        }
+
         setMarkets(formatted);
         setIsLoading(false);
       } catch (err) {

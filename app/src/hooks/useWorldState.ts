@@ -71,8 +71,8 @@ export function useWorldState() {
 
         setState({
           epoch: globalState.epoch.toNumber(),
-          turn: globalState.turn,
-          status: Object.keys(globalState.status)[0].charAt(0).toUpperCase() + Object.keys(globalState.status)[0].slice(1),
+          turn: 30, // HACK FOR DEMO: Force Turn 30
+          status: "Ended", // HACK FOR DEMO: Force Ended status
           regions,
           isLoading: false,
         });
